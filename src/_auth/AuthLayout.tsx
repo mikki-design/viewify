@@ -15,11 +15,7 @@ export default function AuthLayout() {
             <Outlet />
           </section>
 
-          <img
-            src="/assets/images/background.jpg"
-            alt="logo"
-            className="hidden xl:block h-full w-1/2 object-cover  m-0 p-0"
-          />
+          
         </>
       )}
     </>
