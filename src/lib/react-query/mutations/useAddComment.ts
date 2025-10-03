@@ -18,9 +18,14 @@ export const useAddComment = () => {
         { post: postId, content, user: userId }
       );
     },
-    onSuccess: (_, variables) => {
-      // Refresh comments list
-      queryClient.invalidateQueries(["comments", variables.postId]);
-    },
+   onSuccess: (newComment, variables) => {
+  // Optimistically update UI
+  queryClient.setQueryData(["comments", variables.postId], (old: any) => {
+    return old ? [...old, newComment] : [newComment];
+  });
+
+  // Also trigger background refresh
+  queryClient.invalidateQueries(["comments", variables.postId]);
+},
   });
 };
