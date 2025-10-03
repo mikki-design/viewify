@@ -29,7 +29,6 @@ import {
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
 import { databases } from '@/lib/appwrite/config';
 import { ID, Query } from 'appwrite';
-import { CommentType } from "@/types";
 import { appwriteConfig } from "@/lib/appwrite/config";
 const DATABASE_ID = appwriteConfig.databaseId;
 const FOLLOWERS_COLLECTION_ID = appwriteConfig.followersCollectionId;
