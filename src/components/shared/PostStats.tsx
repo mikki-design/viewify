@@ -1,6 +1,6 @@
 import { Models } from "appwrite";
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom"; // Added Link
 
 import { checkIsLiked } from "@/lib/utils";
 import {
@@ -13,11 +13,13 @@ import {
 type PostStatsProps = {
   post: Models.Document;
   userId: string;
+  commentCount: number;
 };
 
-const PostStats = ({ post, userId }: PostStatsProps) => {
+const PostStats = ({ post, userId, commentCount }: PostStatsProps) => {
   const location = useLocation();
-  const likesList = post.likes.map((user: Models.Document) => user.$id);
+  const likesList = (post.likes ?? []).map((user: Models.Document) => user.$id);
+
 
   const [likes, setLikes] = useState<string[]>(likesList);
   const [isSaved, setIsSaved] = useState(false);
@@ -74,26 +76,47 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   return (
     <div
       className={`flex justify-between items-center z-20 ${containerStyles}`}>
-      <div className="flex gap-2 mr-5">
-        <img
-          src={`${
-            checkIsLiked(likes, userId)
-              ? "/assets/icons/liked.svg"
-              : "/assets/icons/like.svg"
-          }`}
-          alt="like"
-          width={20}
-          height={20}
-          onClick={(e) => handleLikePost(e)}
-          className="cursor-pointer"
-        />
-        <p className="small-medium lg:base-medium">{likes.length}</p>
+      {/* Likes */}
+      <div className="flex gap-4 items-center">
+        <div className="flex gap-2">
+          <img
+            src={
+              checkIsLiked(likes, userId)
+                ? "/assets/icons/liked.svg"
+                : "/assets/icons/like.svg"
+            }
+            alt="like"
+            width={20}
+            height={20}
+            onClick={(e) => handleLikePost(e)}
+            className="cursor-pointer"
+          />
+          <p className="small-medium lg:base-medium">{likes.length}</p>
+        </div>
+
+        {/* Comments */}
+        <Link
+          to={`/posts/${post.$id}`}
+          className="flex gap-2 items-center cursor-pointer hover:opacity-80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img
+            src="/assets/icons/chat.svg"
+            alt="comments"
+            width={20}
+            height={20}
+          />
+          <p className="small-medium lg:base-medium">
+            {commentCount}
+          </p>
+        </Link>
       </div>
 
+      {/* Save */}
       <div className="flex gap-2">
         <img
           src={isSaved ? "/assets/icons/saved.svg" : "/assets/icons/save.svg"}
-          alt="share"
+          alt="save"
           width={20}
           height={20}
           className="cursor-pointer"

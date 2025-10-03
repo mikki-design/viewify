@@ -1,3 +1,4 @@
+import { Models } from "appwrite";
 export type INavLink = {
   imgURL: string;
   route: string;
@@ -25,7 +26,7 @@ export type IUpdatePost = {
   postId: string;
   caption: string;
   imageId: string;
-  imageUrl: URL;
+  imageUrl: string;
   file: File[];
   location?: string;
   tags?: string;
@@ -45,4 +46,11 @@ export type INewUser = {
   email: string;
   username: string;
   password: string;
+};
+export type CommentType = Models.Document & {
+  content: string;
+  user?: {
+    name?: string;
+    imageUrl?: string;
+  };
 };

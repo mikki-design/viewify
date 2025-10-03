@@ -27,6 +27,13 @@ import {
   deleteSavedPost,
 } from "@/lib/appwrite/api";
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
+import { databases } from '@/lib/appwrite/config';
+import { ID, Query } from 'appwrite';
+import { CommentType } from "@/types";
+import { appwriteConfig } from "@/lib/appwrite/config";
+const DATABASE_ID = appwriteConfig.databaseId;
+const FOLLOWERS_COLLECTION_ID = appwriteConfig.followersCollectionId;
+const COMMENTS_COLLECTION_ID = appwriteConfig.commentsCollectionId;
 
 // ============================================================
 // AUTH QUERIES
@@ -244,3 +251,140 @@ export const useUpdateUser = () => {
     },
   });
 };
+
+export const useIsFollowing = (followerId: string, followedId: string) => {
+  return useQuery({
+    queryKey: ['isFollowing', followerId, followedId],
+    queryFn: async () => {
+      const result = await databases.listDocuments(
+        DATABASE_ID,
+        FOLLOWERS_COLLECTION_ID,
+        [
+          Query.equal('followerId', followerId),
+          Query.equal('followedId', followedId),
+        ]
+      );
+      return result.documents[0]; // return the follow doc if exists
+    },
+    enabled: !!followerId && !!followedId && followerId !== followedId,
+  });
+};
+
+
+export const useAddComment = () => {
+  return useMutation({
+    mutationFn: async ({
+      postId,
+      userId,
+      content,
+    }: { postId: string; userId: string; content: string }) => {
+      const res = await databases.createDocument(
+        DATABASE_ID,
+        COMMENTS_COLLECTION_ID,
+        ID.unique(),
+        {
+          postId: postId,
+          userId: userId,
+          content,
+        }
+      );
+      return res;
+    },
+  });
+};
+
+// ✅ Get comments for a post
+export const useGetCommentsForPost = (postId: string) => {
+  return useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async () => {
+      const res = await databases.listDocuments(
+        DATABASE_ID,
+        COMMENTS_COLLECTION_ID,
+        [
+          Query.equal("postId", postId),
+          Query.isNull("parentId"),
+          Query.orderAsc("$createdAt"),
+          Query.limit(50),
+ Query.select(["$id", "content", "userId"]), // adjust as needed
+        ]
+      );
+     return res.documents.map((doc) => ({
+        $id: doc.$id,
+        content: doc.content,
+        user: doc.user || null, // prevent crash if user missing
+      }));
+    },
+  });
+};
+
+// ✅ Fetch replies for a comment
+export const useGetRepliesForComment = (commentId: string) => {
+  return useQuery(["replies", commentId], async () => {
+    const res = await databases.listDocuments(DATABASE_ID, COMMENTS_COLLECTION_ID, [
+      Query.equal("parentId", commentId),
+      Query.orderAsc("$createdAt"),
+      Query.limit(50),
+    ]);
+    return res.documents;
+  });
+};
+
+// ✅ Add comment or reply
+export const useAddCommentOrReply = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    async ({ postId, content, parentId = null, userId }: { postId: string; content: string; parentId?: string | null; userId: string }) => {
+      return await databases.createDocument(DATABASE_ID, COMMENTS_COLLECTION_ID, ID.unique(), {
+        postId,
+        content,
+        parentId,
+        userId,
+      });
+    },
+    {
+      onSuccess: (_, { postId, parentId }) => {
+        if (parentId) {
+          queryClient.invalidateQueries(["replies", parentId]);
+        } else {
+          queryClient.invalidateQueries(["comments", postId]);
+        }
+      },
+    }
+  );
+};
+
+// Delete a comment
+/*export const useDeleteComment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) => deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_COMMENTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_COMMENTS_FOR_POST],
+      });
+    },
+  });
+};
+
+
+// Delete a reply
+export const useDeleteReply = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (replyId: string) => deleteReply(replyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_REPLIES_FOR_COMMENT],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_COMMENTS_FOR_POST],
+      });
+    },
+  });
+};
+*/

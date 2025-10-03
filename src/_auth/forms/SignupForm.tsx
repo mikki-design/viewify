@@ -2,7 +2,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-
+import { useEffect } from "react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,61 +28,109 @@ const SignupForm = () => {
     },
   });
 
+  useEffect(() => {
+    const errors = form.formState.errors;
+
+    if (errors.name) {
+      toast({
+        title: "Name Error",
+        description: errors.name.message,
+        variant: "destructive",
+      });
+    }
+    if (errors.username) {
+      toast({
+        title: "Username Error",
+        description: errors.username.message,
+        variant: "destructive",
+      });
+    }
+    if (errors.email) {
+      toast({
+        title: "Email Error",
+        description: errors.email.message,
+        variant: "destructive",
+      });
+    }
+    if (errors.password) {
+      toast({
+        title: "Password Error",
+        description: errors.password.message,
+        variant: "destructive",
+      });
+    }
+  }, [form.formState.errors, toast]);
   // Queries
   const { mutateAsync: createUserAccount, isLoading: isCreatingAccount } = useCreateUserAccount();
   const { mutateAsync: signInAccount, isLoading: isSigningInUser } = useSignInAccount();
 
   // Handler
   const handleSignup = async (user: z.infer<typeof SignupValidation>) => {
-    try {
-      const newUser = await createUserAccount(user);
+  try {
+    const newUser = await createUserAccount(user);
 
-      if (!newUser) {
-        toast({ title: "Sign up failed. Please try again.", });
-        
-        return;
-      }
-
-      const session = await signInAccount({
-        email: user.email,
-        password: user.password,
+    if (!newUser) {
+      toast({
+        title: "Sign up failed",
+        description: "Unable to create account. Please try again.",
+        variant: "destructive",
       });
-
-      if (!session) {
-        toast({ title: "Something went wrong. Please login your new account", });
-        
-        navigate("/sign-in");
-        
-        return;
-      }
-
-      const isLoggedIn = await checkAuthUser();
-
-      if (isLoggedIn) {
-        form.reset();
-
-        navigate("/");
-      } else {
-        toast({ title: "Login failed. Please try again.", });
-        
-        return;
-      }
-    } catch (error) {
-      console.log({ error });
+      return;
     }
-  };
+
+    const session = await signInAccount({
+      email: user.email,
+      password: user.password,
+    });
+
+    if (!session) {
+      toast({
+        title: "Sign in failed",
+        description: "Please login to your new account manually.",
+        variant: "destructive",
+      });
+      navigate("/sign-in");
+      return;
+    }
+
+    const isLoggedIn = await checkAuthUser();
+
+    if (isLoggedIn) {
+      form.reset();
+      navigate("/");
+    } else {
+      toast({
+        title: "Login failed",
+        description: "Something went wrong after signup. Try again.",
+        variant: "destructive",
+      });
+    }
+  } catch (error: any) {
+    toast({
+      title: "Error",
+      description: error.message || "Unexpected error occurred",
+      variant: "destructive",
+    });
+  }
+};
+
 
   return (
     <Form {...form}>
-      <div className="sm:w-420 flex-center flex-col">
-        <img src="/assets/images/logo.svg" alt="logo" />
+     <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
+  <img 
+    src="/assets/images/viewss.png" 
+    alt="logo" 
+    className="pt-40" 
+  />
 
-        <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">
-          Create a new account
-        </h2>
-        <p className="text-light-3 small-medium md:base-regular mt-2">
-          To use snapgram, Please enter your details
-        </p>
+  <h2 className="h3-bold md:h2-bold">
+    Create a new account
+  </h2>
+  <p className="text-light-3 small-medium md:base-regular mt-2">
+    To use viewify, Please enter your details
+  </p>
+
 
         <form
           onSubmit={form.handleSubmit(handleSignup)}

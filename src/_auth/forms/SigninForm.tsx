@@ -2,6 +2,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -29,32 +30,75 @@ const SigninForm = () => {
     },
   });
 
-  const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
+  // ✅ Show toast when validation errors occur
+  useEffect(() => {
+    const errors = form.formState.errors;
+
+    if (errors.email) {
+      toast({
+        title: "Email Error",
+        description: errors.email.message,
+        variant: "destructive",
+      });
+    }
+    if (errors.password) {
+      toast({
+        title: "Password Error",
+        description: errors.password.message,
+        variant: "destructive",
+      });
+    }
+  }, [form.formState.errors, toast]);
+
+const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
+  try {
     const session = await signInAccount(user);
 
     if (!session) {
-      toast({ title: "Login failed. Please try again." });
-      
-      return;
+      throw new Error("Invalid email or password");
     }
 
     const isLoggedIn = await checkAuthUser();
 
     if (isLoggedIn) {
-      form.reset();
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${user.email}`,
+        variant: "default",
+      });
 
+      form.reset();
       navigate("/");
     } else {
-      toast({ title: "Login failed. Please try again.", });
-      
-      return;
+      throw new Error("Could not verify logged in user");
     }
-  };
+  } catch (err: any) {
+    let errorMessage = err?.message || "Something went wrong";
+
+    // Map specific Appwrite errors to friendlier messages
+    if (err?.code === 401 || errorMessage.includes("Invalid credentials")) {
+      errorMessage = "Invalid email or password";
+    }
+
+    toast({
+      title: "Login failed",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  }
+};
+
+
+
 
   return (
     <Form {...form}>
-      <div className="sm:w-420 flex-center flex-col">
-        <img src="/assets/images/logo.svg" alt="logo" />
+      <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
+        <img 
+          src="/assets/images/viewss.png" 
+          alt="logo" 
+          className="pt-40" 
+        />
 
         <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">
           Log in to your account
@@ -62,9 +106,11 @@ const SigninForm = () => {
         <p className="text-light-3 small-medium md:base-regular mt-2">
           Welcome back! Please enter your details.
         </p>
+
         <form
           onSubmit={form.handleSubmit(handleSignin)}
-          className="flex flex-col gap-5 w-full mt-4">
+          className="flex flex-col gap-5 w-full mt-4"
+        >
           <FormField
             control={form.control}
             name="email"
@@ -107,7 +153,8 @@ const SigninForm = () => {
             Don&apos;t have an account?
             <Link
               to="/sign-up"
-              className="text-primary-500 text-small-semibold ml-1">
+              className="text-primary-500 text-small-semibold ml-1"
+            >
               Sign up
             </Link>
           </p>

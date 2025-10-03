@@ -160,9 +160,10 @@
     @apply h-80 lg:h-[480px] xl:w-[48%] rounded-t-[30px] xl:rounded-l-[24px] xl:rounded-tr-none object-cover p-5 bg-dark-1;
   }
 
-  .post_details-info {
-    @apply bg-dark-2 flex flex-col gap-5 lg:gap-7 flex-1 items-start p-8 rounded-[30px];
-  }
+ .post_details-info {
+  @apply flex flex-col flex-1 items-start gap-5 rounded-[30px] bg-dark-2 p-3;
+}
+
 
   .post_details-delete_btn {
     @apply p-0 flex gap-3 hover:bg-transparent hover:text-light-1  text-light-1 small-medium lg:base-medium;

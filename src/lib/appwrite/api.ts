@@ -1,4 +1,4 @@
-import { ID, Query } from "appwrite";
+import { ID, Permission, Query, Role } from "appwrite";
 
 import { appwriteConfig, account, databases, storage, avatars } from "./config";
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
@@ -26,7 +26,7 @@ export async function createUserAccount(user: INewUser) {
       name: newAccount.name,
       email: newAccount.email,
       username: user.username,
-      imageUrl: avatarUrl,
+      imageUrl: avatarUrl.toString(),
     });
 
     return newUser;
@@ -41,7 +41,7 @@ export async function saveUserToDB(user: {
   accountId: string;
   email: string;
   name: string;
-  imageUrl: URL;
+  imageUrl: string;
   username?: string;
 }) {
   try {
@@ -126,7 +126,7 @@ export async function createPost(post: INewPost) {
     if (!uploadedFile) throw Error;
 
     // Get file url
-    const fileUrl = getFilePreview(uploadedFile.$id);
+    const fileUrl = getFileView(uploadedFile.$id);
     if (!fileUrl) {
       await deleteFile(uploadedFile.$id);
       throw Error;
@@ -167,32 +167,31 @@ export async function uploadFile(file: File) {
     const uploadedFile = await storage.createFile(
       appwriteConfig.storageId,
       ID.unique(),
-      file
+      file,
+       [Permission.read(Role.any())],
     );
 
     return uploadedFile;
   } catch (error) {
+    console.log("Uploaded File:", uploadFile);
+
     console.log(error);
   }
 }
 
 // ============================== GET FILE URL
-export function getFilePreview(fileId: string) {
+export function getFileView(fileId: string): string {
   try {
-    const fileUrl = storage.getFilePreview(
-      appwriteConfig.storageId,
-      fileId,
-      2000,
-      2000,
-      "top",
-      100
-    );
+    const fileUrl = storage.getFileView(appwriteConfig.storageId, fileId);
 
-    if (!fileUrl) throw Error;
+    
 
-    return fileUrl;
+    if (!fileUrl) throw Error("No file URL");
+
+return fileUrl.toString();
   } catch (error) {
-    console.log(error);
+    console.log("Error generating file preview:", error);
+      return "";
   }
 }
 
@@ -281,7 +280,7 @@ export async function updatePost(post: IUpdatePost) {
       if (!uploadedFile) throw Error;
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw Error;
@@ -502,7 +501,7 @@ export async function updateUser(user: IUpdateUser) {
       if (!uploadedFile) throw Error;
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw Error;
@@ -544,3 +543,17 @@ export async function updateUser(user: IUpdateUser) {
     console.log(error);
   }
 }
+
+/*export const deleteComment = async (commentId: string) => {
+  if (!commentId) throw new Error("Comment ID is required");
+
+  try {
+    await databases.deleteDocument(appwriteConfig.databaseId, appwriteConfig.commentsCollectionId, commentId);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete comment:", error);
+    throw error;
+  }
+};
+
+*/
