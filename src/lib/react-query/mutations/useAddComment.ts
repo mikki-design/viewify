@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { databases } from "@/lib/appwrite/config";
-import { ID, Permission, Role } from "appwrite";
+import { ID } from "appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
 
 const DATABASE_ID = appwriteConfig.databaseId;
