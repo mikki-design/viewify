@@ -25,7 +25,8 @@ export const useAddComment = () => {
   });
 
   // Also trigger background refresh
-  queryClient.invalidateQueries(["comments", variables.postId]);
+  queryClient.invalidateQueries({ queryKey: ["comments", variables.postId] });
+
 },
   });
 };
