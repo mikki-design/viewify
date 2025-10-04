@@ -273,8 +273,15 @@ const PostDetails = () => {
               <h3 className="body-bold mb-4">Comments</h3>
 
               {/* Comment Form */}
-              <div className="flex items-center gap-3 mb-6">
+               <form
+  onSubmit={(e) => {
+    e.preventDefault();
+    handleAddComment();
+  }}
+             className="flex items-center gap-3 mb-6" >
                 <input
+                   name="comment" // <-- helps mobile keyboards
+    id="comment"
                   type="text"
                   placeholder="Write a comment..."
                   value={newComment}
@@ -282,14 +289,14 @@ const PostDetails = () => {
                   className="flex-1 bg-dark-4 rounded-lg px-4 py-2 text-light-1 focus:outline-none"
                 />
                 <Button
-                  type="button"
+                  type="submit"
                   disabled={!newComment.trim() || isAddingComment}
                   onClick={handleAddComment}
                 >
               
                   Post
                 </Button>
-              </div>
+             </form>
 
               {/* Comment List */}
               {isCommentsLoading ? (
