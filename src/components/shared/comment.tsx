@@ -53,6 +53,7 @@ const Comment = ({
         {/* Reply input */}
         {activeReply === comment.$id && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 my-3">
+             <form onSubmit={(e) => handleReplySubmit(e, comment.$id)}>
             <input
               type="text"
               placeholder="Write a reply..."
@@ -61,13 +62,14 @@ const Comment = ({
               className="flex-1 bg-dark-3 rounded-lg px-3 py-2 text-xs sm:text-sm md:text-base text-light-1 placeholder:text-light-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <button
-              type="button"
+              type="submit"
               onClick={(e) => handleReplySubmit(e, comment.$id)}
               disabled={!replyTexts[comment.$id]?.trim()}
               className="px-4 py-2 text-xs sm:text-sm font-medium rounded-lg bg-primary-500 text-white disabled:opacity-50 hover:bg-primary-600 transition"
             >
               Reply
             </button>
+                </form>
           </div>
         )}
 
