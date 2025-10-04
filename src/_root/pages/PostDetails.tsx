@@ -39,15 +39,42 @@ const PostDetails = () => {
   const [activeReply, setActiveReply] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
+  const [commentsList, setCommentsList] = useState<CommentType[]>([]);
+
 
 
   const handleReplyChange = (commentId: string, value: string) => {
   setReplyTexts((prev) => ({ ...prev, [commentId]: value }));
 };
 
-  const { mutate: addComment, isLoading: isAddingComment } = useAddComment();
+ const { mutate: addComment, isLoading: isAddingComment } = useAddComment({
+  onSuccess: (newComment) => {
+    const newCommentData = {
+      $id: newComment.$id,
+      content: newComment.content,
+      user: {
+        name: user.name,
+        imageUrl:
+          user.imageUrl || "/assets/icons/profile-placeholder.svg",
+      },
+      replies: [],
+    };
+
+    // Instantly update local list
+    setCommentsList((prev) => [...prev, newCommentData]);
+    setNewComment("");
+  },
+});
+
   const { mutate: addReply } = useAddCommentOrReply();
   const { data: commentDocs, isLoading: isCommentsLoading } = useGetCommentsForPost(id ?? "");
+
+  useEffect(() => {
+  if (commentDocs) {
+    setCommentsList(commentDocs);
+  }
+}, [commentDocs]);
+
 
   const comments: CommentType[] = (commentDocs ?? []).map((doc: any) => ({
     $id: doc.$id,
@@ -303,25 +330,24 @@ const PostDetails = () => {
              
 
               {/* Comment List */}
-              {isCommentsLoading ? (
-                <Loader />
-              ) : comments.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                 {comments.map((comment) => (
-  <Comment
-    key={comment.$id}
-    comment={comment}
-    activeReply={activeReply}
-    setActiveReply={setActiveReply}
-    replyTexts={replyTexts}
-    handleReplyChange={handleReplyChange}
-    handleReplySubmit={handleReplySubmit}
-  />
-))}
-                </div>
-              ) : (
-                <p className="text-light-3">No comments yet. Be the first!</p>
-              )}
+             {commentsList.length > 0 ? (
+  <div className="flex flex-col gap-4">
+    {commentsList.map((comment) => (
+      <Comment
+        key={comment.$id}
+        comment={comment}
+        activeReply={activeReply}
+        setActiveReply={setActiveReply}
+        replyTexts={replyTexts}
+        handleReplyChange={handleReplyChange}
+        handleReplySubmit={handleReplySubmit}
+      />
+    ))}
+  </div>
+) : (
+  <p className="text-light-3">No comments yet. Be the first!</p>
+)}
+
             </div>
           </div>
         </div>
