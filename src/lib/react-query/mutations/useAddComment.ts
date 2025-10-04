@@ -18,15 +18,23 @@ export const useAddComment = () => {
         { post: postId, content, user: userId }
       );
     },
-   onSuccess: (newComment, variables) => {
+  onSuccess: (newComment, variables) => {
   // Optimistically update UI
-  queryClient.setQueryData(["comments", variables.postId], (old: any) => {
-    return old ? [...old, newComment] : [newComment];
+  queryClient.setQueryData(
+    ["comments", variables.postId],
+    (old: any) => {
+      if (!old) return [newComment];
+
+      // If Appwrite returns a document object, ensure it's spread properly
+      return [...old, { ...newComment }];
+    }
+  );
+
+  // Trigger background refresh with v4 syntax
+  queryClient.invalidateQueries({
+    queryKey: ["comments", variables.postId],
   });
-
-  // Also trigger background refresh
-  queryClient.invalidateQueries({ queryKey: ["comments", variables.postId] });
-
 },
+
   });
 };
