@@ -34,6 +34,8 @@ export const useAddComment = () => {
   queryClient.invalidateQueries({
     queryKey: ["comments", variables.postId],
   });
+    // 🔄 Force full page reload to reflect immediately on mobile
+      window.location.reload();
 },
 
   });
