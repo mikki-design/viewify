@@ -76,16 +76,8 @@ const PostDetails = () => {
     setNewComment("");
   };
 
-  const handleReplySubmit = (e: React.MouseEvent, parentId: string) => {
-  e.preventDefault(); // still safe to keep
-  addCommentMutation.mutate({
-    postId,
-    content: replyTexts[parentId],
-    userId: currentUser.id,
-    parentId, // if you’re supporting replies
-  });
-};
-
+   const handleReplySubmit = (e: React.FormEvent, parentId: string) => {
+  e.preventDefault();
 
   const text = replyTexts[parentId] || "";
   if (!text.trim()) return;
