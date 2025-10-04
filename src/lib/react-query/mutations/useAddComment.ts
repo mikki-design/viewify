@@ -6,20 +6,11 @@ import { appwriteConfig } from "@/lib/appwrite/config";
 const DATABASE_ID = appwriteConfig.databaseId;
 const COMMENTS_COLLECTION_ID = appwriteConfig.commentsCollectionId;
 
-export const useAddComment = () => {
+export const useAddComment = (options?: any) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    // 🧠 1️⃣ Create the comment in Appwrite
-    mutationFn: async ({
-      postId,
-      content,
-      userId,
-    }: {
-      postId: string;
-      content: string;
-      userId: string;
-    }) => {
+   return useMutation({
+    mutationFn: async ({ postId, content, userId }: { postId: string; content: string; userId: string }) => {
       return await databases.createDocument(
         DATABASE_ID,
         COMMENTS_COLLECTION_ID,
@@ -27,63 +18,29 @@ export const useAddComment = () => {
         { post: postId, content, user: userId }
       );
     },
+      ...options, // 👈 this allows you to pass onSuccess, onError, etc.
+  });
+};
 
-    // ⚡ 2️⃣ Show comment instantly (optimistic update)
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({
-        queryKey: ["comments", variables.postId],
-      });
+  onSuccess: (newComment, variables) => {
+  // Optimistically update UI
+  queryClient.setQueryData(
+    ["comments", variables.postId],
+    (old: any) => {
+      if (!old) return [newComment];
 
-      const previousComments = queryClient.getQueryData(["comments", variables.postId]);
+      // If Appwrite returns a document object, ensure it's spread properly
+      return [...old, { ...newComment }];
+    }
+  );
 
-      const optimisticComment = {
-        $id: `temp-${Date.now()}`,
-        content: variables.content,
-        user: {
-          name: "You",
-          imageUrl: "/assets/icons/profile-placeholder.svg",
-        },
-        isOptimistic: true,
-      };
+  // Trigger background refresh with v4 syntax
+  queryClient.invalidateQueries({
+    queryKey: ["comments", variables.postId],
+  });
+    // 🔄 Force full page reload to reflect immediately on mobile
+      window.location.reload();
+},
 
-      queryClient.setQueryData(["comments", variables.postId], (old: any) =>
-        old ? [...old, optimisticComment] : [optimisticComment]
-      );
-
-      return { previousComments };
-    },
-
-    // 🟢 3️⃣ Replace the optimistic comment with the real one from Appwrite
-    onSuccess: async (newComment, variables) => {
-      queryClient.setQueryData(["comments", variables.postId], (old: any) => {
-        if (!old) return [newComment];
-        // Remove optimistic comment before adding the real one
-        return [
-          ...old.filter((c: any) => !c.isOptimistic),
-          { ...newComment },
-        ];
-      });
-
-      // Refetch comments from Appwrite to ensure accuracy
-      await queryClient.invalidateQueries({
-        queryKey: ["comments", variables.postId],
-      });
-
-      await queryClient.refetchQueries({
-        queryKey: ["comments", variables.postId],
-        exact: true,
-      });
-    },
-
-    // 🔴 4️⃣ Rollback if something fails
-    onError: (error, variables, context) => {
-      if (context?.previousComments) {
-        queryClient.setQueryData(
-          ["comments", variables.postId],
-          context.previousComments
-        );
-      }
-      console.error("Failed to add comment:", error);
-    },
   });
 };
