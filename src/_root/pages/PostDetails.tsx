@@ -290,7 +290,7 @@ const PostDetails = () => {
                 />
                 <Button
                   type="submit"
-                  type="button"
+                  
                   disabled={!newComment.trim() || isAddingComment}
                   onClick={handleAddComment}
                 >
