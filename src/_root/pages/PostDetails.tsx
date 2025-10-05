@@ -70,11 +70,31 @@ const PostDetails = () => {
     navigate(-1);
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    addComment({ postId: id ?? "", content: newComment, userId: user.id });
-    setNewComment("");
+const handleAddComment = () => {
+  if (!newComment.trim()) return;
+
+  // 👇 Create a local comment immediately
+  const tempComment = {
+    $id: `temp-${Date.now()}`, // temporary ID
+    content: newComment,
+    user: {
+      name: user.name,
+      imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+    },
+    replies: [],
   };
+
+  // Update local state instantly
+  setCommentsList((prev) => [...prev, tempComment]);
+  setNewComment("");
+
+  // 👇 Then send to Appwrite in the background
+  addComment({
+    postId: id ?? "",
+    content: newComment,
+    userId: user.id,
+  });
+};
 
   const handleReplySubmit = (e: React.FormEvent, parentId: string) => {
   e.preventDefault();
@@ -302,24 +322,25 @@ const PostDetails = () => {
 
               {/* Comment List */}
               {isCommentsLoading ? (
-                <Loader />
-              ) : comments.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                 {comments.map((comment) => (
-  <Comment
-    key={comment.$id}
-    comment={comment}
-    activeReply={activeReply}
-    setActiveReply={setActiveReply}
-    replyTexts={replyTexts}
-    handleReplyChange={handleReplyChange}
-    handleReplySubmit={handleReplySubmit}
-  />
-))}
-                </div>
-              ) : (
-                <p className="text-light-3">No comments yet. Be the first!</p>
-              )}
+  <Loader />
+) : commentsList.length > 0 ? (
+  <div className="flex flex-col gap-4">
+    {commentsList.map((comment) => (
+      <Comment
+        key={comment.$id}
+        comment={comment}
+        activeReply={activeReply}
+        setActiveReply={setActiveReply}
+        replyTexts={replyTexts}
+        handleReplyChange={handleReplyChange}
+        handleReplySubmit={handleReplySubmit}
+      />
+    ))}
+  </div>
+) : (
+  <p className="text-light-3">No comments yet. Be the first!</p>
+)}
+
             </div>
           </div>
         </div>
