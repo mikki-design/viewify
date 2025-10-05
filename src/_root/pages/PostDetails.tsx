@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Comment from "@/components/shared/comment";
 import { Button } from "@/components/ui";
@@ -47,18 +47,22 @@ const PostDetails = () => {
 
   const { mutate: addComment, isLoading: isAddingComment } = useAddComment({
   onSuccess: (newComment) => {
-    const newCommentData: CommentType = {
-      $id: newComment.$id,
-      content: newComment.content,
-      user: {
-        name: user.name,
-        imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
-      },
-      replies: [],
-    };
-
+   const newCommentObj: CommentType = {
+  $id: crypto.randomUUID(),
+  $collectionId: "",
+  $databaseId: "",
+  $createdAt: new Date().toISOString(),
+  $updatedAt: new Date().toISOString(),
+  $permissions: [],
+  content: newComment,
+  user: {
+    name: user.name,
+    imageUrl: user.imageUrl,
+  },
+  replies: [],
+};
     // Instantly update local comment list
-    setCommentsList((prev: CommentType[]) => [...prev, newCommentData]);
+setCommentsList((prev) => [...prev, newCommentObj]);
     setNewComment("");
   },
 });
@@ -94,7 +98,7 @@ useEffect(() => {
     navigate(-1);
   };
 
-const handleAddComment = () => {
+const handleAddComment = (newComment: string) => {
   if (!newComment.trim()) return;
 
   // 👇 Create a local comment immediately
