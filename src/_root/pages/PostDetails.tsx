@@ -37,15 +37,39 @@ const PostDetails = () => {
   const [newComment, setNewComment] = useState("");
   const [activeReply, setActiveReply] = useState<string | null>(null);
   const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
+  const [commentsList, setCommentsList] = useState<CommentType[]>([]);
+
 
 
   const handleReplyChange = (commentId: string, value: string) => {
   setReplyTexts((prev) => ({ ...prev, [commentId]: value }));
 };
 
-  const { mutate: addComment, isLoading: isAddingComment } = useAddComment();
+  const { mutate: addComment, isLoading: isAddingComment } = useAddComment({
+  onSuccess: (newComment) => {
+    const newCommentData: CommentType = {
+      $id: newComment.$id,
+      content: newComment.content,
+      user: {
+        name: user.name,
+        imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+      },
+      replies: [],
+    };
+
+    // Instantly update local comment list
+    setCommentsList((prev: CommentType[]) => [...prev, newCommentData]);
+    setNewComment("");
+  },
+});
   const { mutate: addReply } = useAddCommentOrReply();
   const { data: commentDocs, isLoading: isCommentsLoading } = useGetCommentsForPost(id ?? "");
+  // ✅ Sync fetched comments into local state whenever Appwrite data changes
+useEffect(() => {
+  if (commentDocs) {
+    setCommentsList(commentDocs);
+  }
+}, [commentDocs]);
 
   const comments: CommentType[] = (commentDocs ?? []).map((doc: any) => ({
     $id: doc.$id,
