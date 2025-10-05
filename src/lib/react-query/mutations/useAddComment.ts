@@ -6,7 +6,7 @@ import { appwriteConfig } from "@/lib/appwrite/config";
 const DATABASE_ID = appwriteConfig.databaseId;
 const COMMENTS_COLLECTION_ID = appwriteConfig.commentsCollectionId;
 
-export const useAddComment = (options?: any) => {
+export const useAddComment = () => {
   const queryClient = useQueryClient();
 
    return useMutation({
@@ -18,10 +18,6 @@ export const useAddComment = (options?: any) => {
         { post: postId, content, user: userId }
       );
     },
-      ...options, // 👈 this allows you to pass onSuccess, onError, etc.
-  });
-};
-
   onSuccess: (newComment, variables) => {
   // Optimistically update UI
   queryClient.setQueryData(
