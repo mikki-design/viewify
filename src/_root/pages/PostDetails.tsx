@@ -11,7 +11,6 @@ import {
   useDeletePost,
   useAddComment,
   useGetCommentsForPost,
-  useGetRepliesForComment,
   useAddCommentOrReply,
 } from "@/lib/react-query/queries";
 
@@ -37,7 +36,6 @@ const PostDetails = () => {
   // Comments state
   const [newComment, setNewComment] = useState("");
   const [activeReply, setActiveReply] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState("");
   const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
 
 
