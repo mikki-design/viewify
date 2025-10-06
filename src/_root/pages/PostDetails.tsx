@@ -158,17 +158,17 @@ const PostDetails = () => {
   };
 
   return (
-    <div className="post_details-container">
-      <div className="hidden md:flex max-w-5xl w-full">
-        <Button
-          onClick={() => navigate(-1)}
-          variant="ghost"
-          className="shad-button_ghost"
-        >
-          <img src={"/assets/icons/back.svg"} alt="back" width={24} height={24} />
-          <p className="small-medium lg:base-medium">Back</p>
-        </Button>
-      </div>
+    <div className="flex items-center max-w-5xl w-full mb-4">
+  <Button
+    onClick={() => navigate(-1)}
+    variant="ghost"
+    className="shad-button_ghost flex items-center gap-2"
+  >
+    <img src={"/assets/icons/back.svg"} alt="back" width={20} height={20} />
+    <p className="hidden sm:block small-medium lg:base-medium">Back</p>
+  </Button>
+</div>
+
 
       {isLoading || !post ? (
         <Loader />
