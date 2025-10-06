@@ -158,7 +158,8 @@ const PostDetails = () => {
   };
 
   return (
-    <div className="flex items-center max-w-5xl w-full mb-4">
+    <div className="post_details-container">
+      <div className="flex items-center max-w-5xl w-full mb-4">
   <Button
     onClick={() => navigate(-1)}
     variant="ghost"
