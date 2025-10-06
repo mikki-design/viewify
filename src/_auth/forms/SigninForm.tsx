@@ -19,7 +19,6 @@ const SigninForm = () => {
   const navigate = useNavigate();
   const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
 
-  // Query
   const { mutateAsync: signInAccount, isLoading } = useSignInAccount();
 
   const form = useForm<z.infer<typeof SigninValidation>>({
@@ -30,7 +29,6 @@ const SigninForm = () => {
     },
   });
 
-  // ✅ Show toast when validation errors occur
   useEffect(() => {
     const errors = form.formState.errors;
 
@@ -50,46 +48,42 @@ const SigninForm = () => {
     }
   }, [form.formState.errors, toast]);
 
-const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
-  try {
-    const session = await signInAccount(user);
+  const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
+    try {
+      const session = await signInAccount(user);
 
-    if (!session) {
-      throw new Error("Invalid email or password");
-    }
+      if (!session) {
+        throw new Error("Invalid email or password");
+      }
 
-    const isLoggedIn = await checkAuthUser();
+      const isLoggedIn = await checkAuthUser();
 
-    if (isLoggedIn) {
+      if (isLoggedIn) {
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${user.email}`,
+          variant: "default",
+        });
+
+        form.reset();
+        navigate("/");
+      } else {
+        throw new Error("Could not verify logged in user");
+      }
+    } catch (err: any) {
+      let errorMessage = err?.message || "Something went wrong";
+
+      if (err?.code === 401 || errorMessage.includes("Invalid credentials")) {
+        errorMessage = "Invalid email or password";
+      }
+
       toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.email}`,
-        variant: "default",
+        title: "Login failed",
+        description: errorMessage,
+        variant: "destructive",
       });
-
-      form.reset();
-      navigate("/");
-    } else {
-      throw new Error("Could not verify logged in user");
     }
-  } catch (err: any) {
-    let errorMessage = err?.message || "Something went wrong";
-
-    // Map specific Appwrite errors to friendlier messages
-    if (err?.code === 401 || errorMessage.includes("Invalid credentials")) {
-      errorMessage = "Invalid email or password";
-    }
-
-    toast({
-      title: "Login failed",
-      description: errorMessage,
-      variant: "destructive",
-    });
-  }
-};
-
-
-
+  };
 
   return (
     <Form {...form}>
@@ -159,6 +153,13 @@ const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
             </Link>
           </p>
         </form>
+      </div>
+
+      {/* ✅ Fixed bottom watermark */}
+      <div className="fixed bottom-3 left-0 right-0 flex justify-center items-center pointer-events-none select-none">
+        <p className="text-xs text-light-4 tracking-wide">
+          Designed by <span className="text-primary-500 font-semibold">Mikkitech</span>
+        </p>
       </div>
     </Form>
   );
