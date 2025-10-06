@@ -1,18 +1,38 @@
-import { Models } from "appwrite";
+import { Models, Query } from "appwrite";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
 import { PostStats } from "@/components/shared";
 import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/AuthContext";
+import { databases } from "@/lib/appwrite/config";
 
 type PostCardProps = {
   post: Models.Document;
 };
 
+const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID;
+const COMMENTS_COLLECTION_ID = import.meta.env.VITE_APPWRITE_COMMENTS_COLLECTION_ID;
+
 const PostCard = ({ post }: PostCardProps) => {
   const { user } = useUserContext();
+  const [commentCount, setCommentCount] = useState<number>(0);
 
-  if (!post.creator) return;
+  useEffect(() => {
+    const fetchCommentCount = async () => {
+      try {
+        const response = await databases.listDocuments(DATABASE_ID, COMMENTS_COLLECTION_ID, [
+          Query.equal("postId", post.$id),
+        ]);
+        setCommentCount(response.total);
+      } catch (error) {
+        console.error("Failed to fetch comment count:", error);
+      }
+    };
+
+    fetchCommentCount();
+  }, [post.$id]);
+
+  if (!post.creator) return null;
 
   return (
     <div className="post-card">
@@ -47,7 +67,8 @@ const PostCard = ({ post }: PostCardProps) => {
 
         <Link
           to={`/update-post/${post.$id}`}
-          className={`${user.id !== post.creator.$id && "hidden"}`}>
+          className={`${user.id !== post.creator.$id && "hidden"}`}
+        >
           <img
             src={"/assets/icons/edit.svg"}
             alt="edit"
@@ -61,7 +82,7 @@ const PostCard = ({ post }: PostCardProps) => {
         <div className="small-medium lg:base-medium py-5">
           <p>{post.caption}</p>
           <ul className="flex gap-1 mt-2">
-            {post.tags.map((tag: string, index: string) => (
+            {post.tags.map((tag: string, index: number) => (
               <li key={`${tag}${index}`} className="text-light-3 small-regular">
                 #{tag}
               </li>
@@ -76,7 +97,8 @@ const PostCard = ({ post }: PostCardProps) => {
         />
       </Link>
 
-      <PostStats post={post} userId={user.id} commentCount={post.commentCount} />
+      {/* ✅ Pass dynamic comment count */}
+      <PostStats post={post} userId={user.id} commentCount={commentCount} />
     </div>
   );
 };
