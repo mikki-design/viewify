@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Comment from "@/components/shared/comment";
 import { Button } from "@/components/ui";
-import { Loader } from "@/components/shared";
-import { GridPostList, PostStats } from "@/components/shared";
+import { Loader, GridPostList, PostStats } from "@/components/shared";
 
 import {
   useGetPostById,
@@ -33,193 +32,130 @@ const PostDetails = () => {
     (userPost) => userPost.$id !== id
   );
 
-  // Comments state
+  // 🧩 Local comment states
   const [newComment, setNewComment] = useState("");
+  const [commentsList, setCommentsList] = useState<CommentType[]>([]);
   const [activeReply, setActiveReply] = useState<string | null>(null);
   const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
-  const [commentsList, setCommentsList] = useState<CommentType[]>([]);
 
+  const { mutate: addComment, isLoading: isAddingComment } = useAddComment();
+  const { mutate: addReply } = useAddCommentOrReply();
+  const { data: commentDocs, isLoading: isCommentsLoading } =
+    useGetCommentsForPost(id ?? "");
 
+  // 🧩 Sync comments from Appwrite when loaded
+  useEffect(() => {
+    if (commentDocs) {
+      const formatted = commentDocs.map((doc: any) => ({
+        $id: doc.$id,
+        $collectionId: doc.$collectionId,
+        $databaseId: doc.$databaseId,
+        $createdAt: doc.$createdAt,
+        $updatedAt: doc.$updatedAt,
+        $permissions: doc.$permissions,
+        content: doc.content ?? "",
+        postId: doc.postId,
+        user: doc.user
+          ? {
+              name: doc.user.name ?? "Unknown User",
+              imageUrl:
+                doc.user.imageUrl ?? "/assets/icons/profile-placeholder.svg",
+            }
+          : undefined,
+        replies: doc.replies ?? [],
+      }));
+
+      setCommentsList((prev) => {
+        if (
+          JSON.stringify(prev.map((c) => c.$id)) ===
+          JSON.stringify(formatted.map((c) => c.$id))
+        ) {
+          return prev;
+        }
+        return formatted;
+      });
+    }
+  }, [commentDocs]);
 
   const handleReplyChange = (commentId: string, value: string) => {
-  setReplyTexts((prev) => ({ ...prev, [commentId]: value }));
-};
+    setReplyTexts((prev) => ({ ...prev, [commentId]: value }));
+  };
 
-  const { mutate: addComment, isLoading: isAddingComment } = useAddComment({
-  onSuccess: (newComment) => {
-   const newCommentObj: CommentType = {
-  $id: crypto.randomUUID(),
-  $collectionId: "",
-  $databaseId: "",
-  $createdAt: new Date().toISOString(),
-  $updatedAt: new Date().toISOString(),
-  $permissions: [],
-  content: newComment,
-  user: {
-    name: user.name,
-    imageUrl: user.imageUrl,
-  },
-  replies: [],
-};
-    // Instantly update local comment list
-setCommentsList((prev) => [...prev, newCommentObj]);
+  const handleAddComment = () => {
+    if (!newComment.trim() || !user?.name) return;
+
+    const tempId = crypto.randomUUID();
+
+    // 🟩 Create temp comment for instant display
+    const tempComment: CommentType = {
+      $id: tempId,
+      $collectionId: "",
+      $databaseId: "",
+      $createdAt: new Date().toISOString(),
+      $updatedAt: new Date().toISOString(),
+      $permissions: [],
+      content: newComment,
+      postId: id ?? "",
+      user: {
+        name: user.name,
+        imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+      },
+      replies: [],
+    };
+
+    // 🟩 Show immediately in UI
+    setCommentsList((prev) => [...prev, tempComment]);
     setNewComment("");
-  },
-});
-  const { mutate: addReply } = useAddCommentOrReply();
-  const { data: commentDocs, isLoading: isCommentsLoading } = useGetCommentsForPost(id ?? "");
-  // ✅ Sync fetched comments into local state whenever Appwrite data changes
-useEffect(() => {
-  if (commentDocs) {
-    setCommentsList(commentDocs);
-  }
-}, [commentDocs]);
 
-  const comments: CommentType[] = (commentDocs ?? []).map((doc: any) => ({
-    $id: doc.$id,
-    $collectionId: doc.$collectionId,
-    $databaseId: doc.$databaseId,
-    $createdAt: doc.$createdAt,
-    $updatedAt: doc.$updatedAt,
-    $permissions: doc.$permissions,
-    content: doc.content ?? "",
-    postId: doc.postId,
-    user: doc.user
-      ? {
-          name: doc.user.name ?? "Unknown User",
-          imageUrl: doc.user.imageUrl ?? "/assets/icons/profile-placeholder.svg",
-        }
-      : undefined,
-    replies: doc.replies ?? [],
-  }));
+    // 🟩 Save to Appwrite in background
+    addComment(
+      { postId: id ?? "", userId: user.id, content: newComment },
+      {
+        onSuccess: (savedComment: any) => {
+          setCommentsList((prev) =>
+            prev.map((c) =>
+              c.$id === tempId
+                ? {
+                    ...savedComment,
+                    user: {
+                      name: user.name,
+                      imageUrl:
+                        user.imageUrl ||
+                        "/assets/icons/profile-placeholder.svg",
+                    },
+                  }
+                : c
+            )
+          );
+        },
+        onError: () => {
+          setCommentsList((prev) => prev.filter((c) => c.$id !== tempId));
+        },
+      }
+    );
+  };
+
+  const handleReplySubmit = (e: React.FormEvent, parentId: string) => {
+    e.preventDefault();
+
+    const text = replyTexts[parentId] || "";
+    if (!text.trim()) return;
+
+    addReply({
+      postId: id ?? "",
+      content: text,
+      parentId,
+      userId: user.id,
+    });
+
+    setReplyTexts((prev) => ({ ...prev, [parentId]: "" }));
+    setActiveReply(null);
+  };
 
   const handleDeletePost = () => {
     deletePost({ postId: id, imageId: post?.imageId });
     navigate(-1);
   };
-
-const handleAddComment = (newComment: string) => {
-  if (!newComment.trim()) return;
-
-  // 👇 Create a local comment immediately
-  const tempComment = {
-    $id: `temp-${Date.now()}`, // temporary ID
-    content: newComment,
-    user: {
-      name: user.name,
-      imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
-    },
-    replies: [],
-  };
-
-  // Update local state instantly
-  setCommentsList((prev) => [...prev, tempComment]);
-  setNewComment("");
-
-  // 👇 Then send to Appwrite in the background
-  addComment({
-    postId: id ?? "",
-    content: newComment,
-    userId: user.id,
-  });
-};
-
-  const handleReplySubmit = (e: React.FormEvent, parentId: string) => {
-  e.preventDefault();
-
-  const text = replyTexts[parentId] || "";
-  if (!text.trim()) return;
-
-  addReply({
-    postId: id ?? "",
-    content: text,
-    parentId,
-    userId: user.id,
-  });
-
-  // clear only that reply field
-  setReplyTexts((prev) => ({ ...prev, [parentId]: "" }));
-  setActiveReply(null);
-};
-
-
-// Removed handleDeleteReply because setComments does not exist
-
-
-/*  const Comment = React.memo(({ comment }: { comment: CommentType }) => {
-  const { data: replies } = useGetRepliesForComment(comment.$id);
-
-    return (
-      <div className="bg-dark-4 rounded-lg p-3 flex gap-3">
-        <img
-          src={comment.user?.imageUrl || "/assets/icons/profile-placeholder.svg"}
-          alt={comment.user?.name}
-          className="w-8 h-8 rounded-full"
-        />
-        <div>
-          <p className="small-bold">{comment.user?.name}</p>
-          <p className="small-regular text-light-2">{comment.content}</p>
-
-          {/* Reply button *}
-          <button
-            onClick={() =>
-              setActiveReply(activeReply === comment.$id ? null : comment.$id)
-            }
-            className="text-primary-500 small-medium"
-          >
-            Reply
-          </button>
-
-          {/* Reply form *}
-          {activeReply === comment.$id && (
-           
-              <div className="flex items-center gap-3 mb-6 ">
-              <input
-               key={`reply-${comment.$id}`}   // 🔑 stable key so React reuses it
-               id={`reply-input-${comment.$id}`}
-                type="text"
-                placeholder="Write a reply..."
-                value={replyTexts[comment.$id] || ""}
-                onChange={(e) => handleReplyChange(comment.$id, e.target.value)}
-                 className="flex-1 bg-dark-4 rounded-sm px-2 py-2 text-light-1 focus:outline-none"
-              />
-              <button type="button"
-              onClick={(e) => handleReplySubmit(e, comment.$id)}
-      disabled={!replyTexts[comment.$id]?.trim()} className="shad-button_primary px-4 rounded-sm"
-              >
-                Reply</button>
-              </div>
-            
-          )}
-
-          {/* Show replies *}
-          {replies?.map((reply: any) => (
-            <div key={reply.$id} className="ml-8 mt-2 flex gap-2">
-              <img
-                src={
-                  reply.user?.imageUrl ||
-                  "/assets/icons/profile-placeholder.svg"
-                }
-                alt={reply.user?.name}
-                className="w-6 h-6 rounded-full"
-              />
-              <p className="small-regular">{reply.content}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  });*/
-
-/*<Comment
-  key={comment.$id}
-  comment={comment}
-  activeReply={activeReply}
-  setActiveReply={setActiveReply}
-  replyTexts={replyTexts}
-  handleReplyChange={handleReplyChange}
-  handleReplySubmit={handleReplySubmit}
-/>*/
 
   return (
     <div className="post_details-container">
@@ -270,30 +206,20 @@ const handleAddComment = (newComment: string) => {
                 </div>
               </Link>
 
-              <div className="flex-center gap-4">
-                <Link
-                  to={`/update-post/${post?.$id}`}
-                  className={`${user.id !== post?.creator.$id && "hidden"}`}
-                >
-                  
-                </Link>
-{user.id === post?.creator.$id && (
+              {user.id === post?.creator.$id && (
                 <Button
                   onClick={handleDeletePost}
                   variant="ghost"
-                  className={`post_details-delete_btn ${
-                    user.id !== post?.creator.$id && "hidden"
-                  }`}
+                  className="post_details-delete_btn"
                 >
-                   <img
+                  <img
                     src={"/assets/icons/delete.svg"}
                     alt="delete"
                     width={24}
                     height={24}
                   />
                 </Button>
-                )}
-              </div>
+              )}
             </div>
 
             <hr className="border w-full border-dark-4/80" />
@@ -313,62 +239,59 @@ const handleAddComment = (newComment: string) => {
             </div>
 
             <div className="w-full">
-              <PostStats post={post} userId={user.id} commentCount={comments.length} />
+              <PostStats
+                post={post}
+                userId={user.id}
+                commentCount={commentsList.length}
+              />
             </div>
 
-            {/* Comment Section */}
+            {/* 🗨️ Comment Section */}
             <div id="comments" className="mt-8 w-full">
               <h3 className="body-bold mb-4">Comments</h3>
 
-              {/* Comment Form */}
+              {/* Add Comment Form */}
               <form
-  onSubmit={(e) => {
-    e.preventDefault();
-    handleAddComment();
-  }}
-             className="flex items-center gap-3 mb-6" >
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddComment();
+                }}
+                className="flex items-center gap-3 mb-6"
+              >
                 <input
                   type="text"
-                  name="comment" // <-- helps mobile keyboards
-    id="comment"
+                  id="comment"
+                  name="comment"
                   placeholder="Write a comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="flex-1 bg-dark-4 rounded-lg px-4 py-2 text-light-1 focus:outline-none"
                 />
-                <Button
-                  type="submit"
-                  
-                  disabled={!newComment.trim() || isAddingComment}
-                  
-                >
-              
+                <Button type="submit" disabled={!newComment.trim() || isAddingComment}>
                   Post
                 </Button>
-                </form>
-             
+              </form>
 
-              {/* Comment List */}
+              {/* Render Comments */}
               {isCommentsLoading ? (
-  <Loader />
-) : commentsList.length > 0 ? (
-  <div className="flex flex-col gap-4">
-    {commentsList.map((comment) => (
-      <Comment
-        key={comment.$id}
-        comment={comment}
-        activeReply={activeReply}
-        setActiveReply={setActiveReply}
-        replyTexts={replyTexts}
-        handleReplyChange={handleReplyChange}
-        handleReplySubmit={handleReplySubmit}
-      />
-    ))}
-  </div>
-) : (
-  <p className="text-light-3">No comments yet. Be the first!</p>
-)}
-
+                <Loader />
+              ) : commentsList.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {commentsList.map((comment) => (
+                    <Comment
+                      key={comment.$id}
+                      comment={comment}
+                      activeReply={activeReply}
+                      setActiveReply={setActiveReply}
+                      replyTexts={replyTexts}
+                      handleReplyChange={handleReplyChange}
+                      handleReplySubmit={handleReplySubmit}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-light-3">No comments yet. Be the first!</p>
+              )}
             </div>
           </div>
         </div>
@@ -376,10 +299,7 @@ const handleAddComment = (newComment: string) => {
 
       <div className="w-full max-w-5xl">
         <hr className="border w-full border-dark-4/80" />
-
-        <h3 className="body-bold md:h3-bold w-full my-10">
-          More Related Posts
-        </h3>
+        <h3 className="body-bold md:h3-bold w-full my-10">More Related Posts</h3>
         {isUserPostLoading || !relatedPosts ? (
           <Loader />
         ) : (
