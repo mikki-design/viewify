@@ -2,7 +2,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -18,8 +18,9 @@ const SigninForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
-
   const { mutateAsync: signInAccount, isLoading } = useSignInAccount();
+
+  const [topError, setTopError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof SigninValidation>>({
     resolver: zodResolver(SigninValidation),
@@ -29,10 +30,13 @@ const SigninForm = () => {
     },
   });
 
+  // ✅ Handle validation errors (show toast + banner)
   useEffect(() => {
     const errors = form.formState.errors;
+    let firstError = null;
 
     if (errors.email) {
+      firstError = errors.email.message;
       toast({
         title: "Email Error",
         description: errors.email.message,
@@ -40,31 +44,34 @@ const SigninForm = () => {
       });
     }
     if (errors.password) {
+      firstError = errors.password.message;
       toast({
         title: "Password Error",
         description: errors.password.message,
         variant: "destructive",
       });
     }
+
+    setTopError(firstError ?? null);
+    if (firstError) {
+      const timeout = setTimeout(() => setTopError(null), 4000);
+      return () => clearTimeout(timeout);
+    }
   }, [form.formState.errors, toast]);
 
+  // ✅ Sign-in handler
   const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
     try {
       const session = await signInAccount(user);
-
-      if (!session) {
-        throw new Error("Invalid email or password");
-      }
+      if (!session) throw new Error("Invalid email or password");
 
       const isLoggedIn = await checkAuthUser();
-
       if (isLoggedIn) {
         toast({
           title: "Login successful",
           description: `Welcome back, ${user.email}`,
           variant: "default",
         });
-
         form.reset();
         navigate("/");
       } else {
@@ -77,6 +84,7 @@ const SigninForm = () => {
         errorMessage = "Invalid email or password";
       }
 
+      setTopError(errorMessage);
       toast({
         title: "Login failed",
         description: errorMessage,
@@ -86,74 +94,77 @@ const SigninForm = () => {
   };
 
   return (
-    <Form {...form}>
-      <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
-        <img 
-          src="/assets/images/viewss.png" 
-          alt="logo" 
-          className="pt-40" 
-        />
+    <div className="relative min-h-screen flex flex-col justify-center items-center">
+      {/* ✅ Fixed top error message (mobile only) */}
+      {topError && (
+        <div className="fixed top-0 left-0 right-0 bg-red-500 text-white text-sm text-center py-2 sm:hidden z-50 animate-slideDown">
+          {topError}
+        </div>
+      )}
 
-        <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">
-          Log in to your account
-        </h2>
-        <p className="text-light-3 small-medium md:base-regular mt-2">
-          Welcome back! Please enter your details.
-        </p>
+      <Form {...form}>
+        <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
+          <img src="/assets/images/viewss.png" alt="logo" className="pt-40" />
 
-        <form
-          onSubmit={form.handleSubmit(handleSignin)}
-          className="flex flex-col gap-5 w-full mt-4"
-        >
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="shad-form_label">Email</FormLabel>
-                <FormControl>
-                  <Input type="text" className="shad-input" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="shad-form_label">Password</FormLabel>
-                <FormControl>
-                  <Input type="password" className="shad-input" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" className="shad-button_primary">
-            {isLoading || isUserLoading ? (
-              <div className="flex-center gap-2">
-                <Loader /> Loading...
-              </div>
-            ) : (
-              "Log in"
-            )}
-          </Button>
-
-          <p className="text-small-regular text-light-2 text-center mt-2">
-            Don&apos;t have an account?
-            <Link
-              to="/sign-up"
-              className="text-primary-500 text-small-semibold ml-1"
-            >
-              Sign up
-            </Link>
+          <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">Log in to your account</h2>
+          <p className="text-light-3 small-medium md:base-regular mt-2">
+            Welcome back! Please enter your details.
           </p>
-        </form>
-      </div>
+
+          <form
+            onSubmit={form.handleSubmit(handleSignin)}
+            className="flex flex-col gap-5 w-full mt-4"
+          >
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="shad-form_label">Email</FormLabel>
+                  <FormControl>
+                    <Input type="text" className="shad-input" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="shad-form_label">Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" className="shad-input" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="shad-button_primary">
+              {isLoading || isUserLoading ? (
+                <div className="flex-center gap-2">
+                  <Loader /> Loading...
+                </div>
+              ) : (
+                "Log in"
+              )}
+            </Button>
+
+            <p className="text-small-regular text-light-2 text-center mt-2">
+              Don&apos;t have an account?
+              <Link
+                to="/sign-up"
+                className="text-primary-500 text-small-semibold ml-1"
+              >
+                Sign up
+              </Link>
+            </p>
+          </form>
+        </div>
+      </Form>
 
       {/* ✅ Fixed bottom watermark */}
       <div className="fixed bottom-3 left-0 right-0 flex justify-center items-center pointer-events-none select-none">
@@ -161,7 +172,7 @@ const SigninForm = () => {
           Designed by <span className="text-primary-500 font-semibold">Mikkitech</span>
         </p>
       </div>
-    </Form>
+    </div>
   );
 };
 
