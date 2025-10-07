@@ -2,14 +2,24 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useEffect, useState } from "react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Loader from "@/components/shared/Loader";
 import { useToast } from "@/components/ui/use-toast";
 
-import { useCreateUserAccount, useSignInAccount } from "@/lib/react-query/queries";
+import {
+  useCreateUserAccount,
+  useSignInAccount,
+} from "@/lib/react-query/queries";
 import { SignupValidation } from "@/lib/validation";
 import { useUserContext } from "@/context/AuthContext";
 
@@ -17,6 +27,8 @@ const SignupForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof SignupValidation>>({
     resolver: zodResolver(SignupValidation),
@@ -31,49 +43,33 @@ const SignupForm = () => {
   useEffect(() => {
     const errors = form.formState.errors;
 
-    if (errors.name) {
-      toast({
-        title: "Name Error",
-        description: errors.name.message,
-        variant: "destructive",
-      });
-    }
-    if (errors.username) {
-      toast({
-        title: "Username Error",
-        description: errors.username.message,
-        variant: "destructive",
-      });
-    }
-    if (errors.email) {
-      toast({
-        title: "Email Error",
-        description: errors.email.message,
-        variant: "destructive",
-      });
-    }
-    if (errors.password) {
-      toast({
-        title: "Password Error",
-        description: errors.password.message,
-        variant: "destructive",
-      });
-    }
-  }, [form.formState.errors, toast]);
+    if (errors.name) setErrorMessage(errors.name.message || "Invalid name");
+    if (errors.username)
+      setErrorMessage(errors.username.message || "Invalid username");
+    if (errors.email) setErrorMessage(errors.email.message || "Invalid email");
+    if (errors.password)
+      setErrorMessage(errors.password.message || "Invalid password");
+  }, [form.formState.errors]);
 
-  const { mutateAsync: createUserAccount, isLoading: isCreatingAccount } = useCreateUserAccount();
-  const { mutateAsync: signInAccount, isLoading: isSigningInUser } = useSignInAccount();
+  // Automatically clear the error after 3 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => setErrorMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
+
+  const { mutateAsync: createUserAccount, isLoading: isCreatingAccount } =
+    useCreateUserAccount();
+  const { mutateAsync: signInAccount, isLoading: isSigningInUser } =
+    useSignInAccount();
 
   const handleSignup = async (user: z.infer<typeof SignupValidation>) => {
     try {
       const newUser = await createUserAccount(user);
 
       if (!newUser) {
-        toast({
-          title: "Sign up failed",
-          description: "Unable to create account. Please try again.",
-          variant: "destructive",
-        });
+        setErrorMessage("Unable to create account. Please try again.");
         return;
       }
 
@@ -83,11 +79,7 @@ const SignupForm = () => {
       });
 
       if (!session) {
-        toast({
-          title: "Sign in failed",
-          description: "Please login to your new account manually.",
-          variant: "destructive",
-        });
+        setErrorMessage("Please login to your new account manually.");
         navigate("/sign-in");
         return;
       }
@@ -98,34 +90,27 @@ const SignupForm = () => {
         form.reset();
         navigate("/");
       } else {
-        toast({
-          title: "Login failed",
-          description: "Something went wrong after signup. Try again.",
-          variant: "destructive",
-        });
+        setErrorMessage("Something went wrong after signup. Try again.");
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Unexpected error occurred",
-        variant: "destructive",
-      });
+      setErrorMessage(error.message || "Unexpected error occurred");
     }
   };
 
   return (
     <div className="relative min-h-screen flex flex-col justify-center items-center">
+      {/* 🔴 Error message at the top */}
+      {errorMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-md shadow-md text-sm animate-fade-in-out z-50">
+          {errorMessage}
+        </div>
+      )}
+
       <Form {...form}>
         <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
-          <img
-            src="/assets/images/viewss.png"
-            alt="logo"
-            className="pt-40"
-          />
+          <img src="/assets/images/viewss.png" alt="logo" className="pt-40" />
 
-          <h2 className="h3-bold md:h2-bold">
-            Create a new account
-          </h2>
+          <h2 className="h3-bold md:h2-bold">Create a new account</h2>
           <p className="text-light-3 small-medium md:base-regular mt-2">
             To use viewify, please enter your details
           </p>
@@ -215,7 +200,8 @@ const SignupForm = () => {
 
       {/* ✅ Fixed bottom watermark */}
       <p className="fixed bottom-2 left-0 right-0 text-center text-xs text-gray-500 opacity-60">
-        Designed by <span className="font-semibold text-primary-500">Mikkitech</span>
+        Designed by{" "}
+        <span className="font-semibold text-primary-500">Mikkitech</span>
       </p>
     </div>
   );
