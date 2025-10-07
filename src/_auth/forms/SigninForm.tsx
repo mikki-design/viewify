@@ -4,7 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Loader from "@/components/shared/Loader";
@@ -30,30 +37,22 @@ const SigninForm = () => {
     },
   });
 
-  // ✅ Handle validation errors (show toast + banner)
+  // ✅ Handle validation errors
   useEffect(() => {
     const errors = form.formState.errors;
     let firstError = null;
 
-    if (errors.email) {
-      firstError = errors.email.message;
-      toast({
-        title: "Email Error",
-        description: errors.email.message,
-        variant: "destructive",
-      });
-    }
-    if (errors.password) {
-      firstError = errors.password.message;
-      toast({
-        title: "Password Error",
-        description: errors.password.message,
-        variant: "destructive",
-      });
-    }
+    if (errors.email) firstError = errors.email.message;
+    if (errors.password) firstError = errors.password.message;
 
-    setTopError(firstError ?? null);
     if (firstError) {
+      setTopError(firstError);
+      toast({
+        title: "Validation Error",
+        description: firstError,
+        variant: "destructive",
+      });
+
       const timeout = setTimeout(() => setTopError(null), 4000);
       return () => clearTimeout(timeout);
     }
@@ -75,7 +74,7 @@ const SigninForm = () => {
         form.reset();
         navigate("/");
       } else {
-        throw new Error("Could not verify logged in user");
+        throw new Error("Could not verify logged-in user");
       }
     } catch (err: any) {
       let errorMessage = err?.message || "Something went wrong";
@@ -90,14 +89,18 @@ const SigninForm = () => {
         description: errorMessage,
         variant: "destructive",
       });
+
+      // Automatically remove the banner
+      const timeout = setTimeout(() => setTopError(null), 4000);
+      return () => clearTimeout(timeout);
     }
   };
 
   return (
     <div className="relative min-h-screen flex flex-col justify-center items-center">
-      {/* ✅ Fixed top error message (mobile only) */}
+      {/* 🔴 Fixed top error message (shows mostly on mobile) */}
       {topError && (
-        <div className="fixed top-0 left-0 right-0 bg-red-500 text-white text-sm text-center py-2 sm:hidden z-50 animate-slideDown">
+        <div className="fixed top-0 left-0 right-0 bg-red-500 text-white text-sm text-center py-2 z-50 animate-slideDown sm:hidden">
           {topError}
         </div>
       )}
@@ -106,7 +109,9 @@ const SigninForm = () => {
         <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
           <img src="/assets/images/viewss.png" alt="logo" className="pt-40" />
 
-          <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">Log in to your account</h2>
+          <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">
+            Log in to your account
+          </h2>
           <p className="text-light-3 small-medium md:base-regular mt-2">
             Welcome back! Please enter your details.
           </p>
@@ -169,7 +174,8 @@ const SigninForm = () => {
       {/* ✅ Fixed bottom watermark */}
       <div className="fixed bottom-3 left-0 right-0 flex justify-center items-center pointer-events-none select-none">
         <p className="text-xs text-light-4 tracking-wide">
-          Designed by <span className="text-primary-500 font-semibold">Mikkitech</span>
+          Designed by{" "}
+          <span className="text-primary-500 font-semibold">Mikkitech</span>
         </p>
       </div>
     </div>
