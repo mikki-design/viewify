@@ -8,6 +8,7 @@ type GridPostListProps = {
   posts: Models.Document[];
   showUser?: boolean;
   showStats?: boolean;
+   onUnsave?: (savedId: string) => void;
 };
 
 const GridPostList = ({
@@ -43,7 +44,13 @@ const GridPostList = ({
                 <p className="line-clamp-1">{post.creator.name}</p>
               </div>
             )}
-            {showStats && <PostStats post={post} userId={user.id} commentCount={post.commentCount} />}
+            {showStats && (
+              <PostStats
+                post={post}
+                userId={user.id}
+                commentCount={post.commentCount}
+              />
+            )}
           </div>
         </li>
       ))}
