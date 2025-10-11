@@ -30,13 +30,15 @@ const PostStats = ({ post, userId, commentCount }: PostStatsProps) => {
 
   const { data: currentUser } = useGetCurrentUser();
 
-  const savedPostRecord = currentUser?.save.find(
-    (record: Models.Document) => record.post.$id === post.$id
-  );
+  const savedPosts = currentUser?.save ?? [];
+const savedPostRecord = savedPosts.find(
+  (record: Models.Document) => record?.post?.$id === post?.$id
+);
+
 
   useEffect(() => {
-    setIsSaved(!!savedPostRecord);
-  }, [currentUser]);
+  setIsSaved(!!savedPostRecord);
+}, [currentUser, savedPostRecord]);
 
   const handleLikePost = (
     e: React.MouseEvent<HTMLImageElement, MouseEvent>
