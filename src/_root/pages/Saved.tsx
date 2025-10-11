@@ -1,19 +1,21 @@
 import { Models } from "appwrite";
-
 import { GridPostList, Loader } from "@/components/shared";
 import { useGetCurrentUser } from "@/lib/react-query/queries";
 
 const Saved = () => {
   const { data: currentUser } = useGetCurrentUser();
 
-  const savePosts = currentUser?.save
-    .map((savePost: Models.Document) => ({
-      ...savePost.post,
-      creator: {
-        imageUrl: currentUser.imageUrl,
-      },
-    }))
-    .reverse();
+  // Filter out deleted or missing posts
+  const savePosts =
+    currentUser?.save
+      ?.filter((savePost: Models.Document) => savePost?.post) // only valid posts
+      .map((savePost: Models.Document) => ({
+        ...savePost.post,
+        creator: {
+          imageUrl: currentUser.imageUrl,
+        },
+      }))
+      .reverse() || [];
 
   return (
     <div className="saved-container">
