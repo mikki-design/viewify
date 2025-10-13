@@ -23,7 +23,7 @@ export const useFollowUser = ({ onSuccess, onError }: {
         { followerId, followedId }
       );
     },
-    onSuccess: (...args) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(); // Or use specific keys
       onSuccess?.(); // ✅ call user-provided success callback
     },
@@ -49,7 +49,7 @@ export const useUnfollowUser = ({ onSuccess, onError }: {
         followDocId
       );
     },
-    onSuccess: (...args) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(); // Or use specific keys
       onSuccess?.();
     },

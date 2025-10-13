@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { databases } from "@/lib/appwrite/config";
-import { ID, Permission, Role } from "appwrite";
+import { ID } from "appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
 
 const DATABASE_ID = appwriteConfig.databaseId;
@@ -18,9 +18,23 @@ export const useAddComment = () => {
         { post: postId, content, user: userId }
       );
     },
-    onSuccess: (_, variables) => {
-      // Refresh comments list
-      queryClient.invalidateQueries(["comments", variables.postId]);
-    },
+   onSuccess: (newComment, variables) => {
+  // Optimistically update UI
+  queryClient.setQueryData(
+    ["comments", variables.postId],
+    (old: any) => {
+      if (!old) return [newComment];
+
+      // If Appwrite returns a document object, ensure it's spread properly
+      return [...old, { ...newComment }];
+    }
+  );
+
+  // Trigger background refresh with v4 syntax
+  queryClient.invalidateQueries({
+    queryKey: ["comments", variables.postId],
+  });
+},
+
   });
 };

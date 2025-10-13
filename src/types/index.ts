@@ -1,4 +1,15 @@
 import { Models } from "appwrite";
+export type ReplyWithUser = Models.Document & {
+  $id: string;
+  content: string;
+  userId?: string;
+  parentId?: string;
+  user: {
+    name?: string;
+    imageUrl?: string;
+  };
+};
+
 export type INavLink = {
   imgURL: string;
   route: string;
@@ -53,4 +64,7 @@ export type CommentType = Models.Document & {
     name?: string;
     imageUrl?: string;
   };
+  parentId?: string;
+  userId?: string;
 };
+

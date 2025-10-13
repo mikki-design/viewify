@@ -29,11 +29,13 @@ import {
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
 import { databases } from '@/lib/appwrite/config';
 import { ID, Query } from 'appwrite';
-import { CommentType } from "@/types";
+//import { CommentType } from "@/types";
+import { ReplyWithUser } from "@/types";
 import { appwriteConfig } from "@/lib/appwrite/config";
 const DATABASE_ID = appwriteConfig.databaseId;
 const FOLLOWERS_COLLECTION_ID = appwriteConfig.followersCollectionId;
 const COMMENTS_COLLECTION_ID = appwriteConfig.commentsCollectionId;
+const USERS_COLLECTION_ID = appwriteConfig.userCollectionId;
 
 // ============================================================
 // AUTH QUERIES
@@ -294,6 +296,7 @@ export const useAddComment = () => {
 };
 
 // ✅ Get comments for a post
+// ✅ Fetch comments + attach user info dynamically
 export const useGetCommentsForPost = (postId: string) => {
   return useQuery({
     queryKey: ["comments", postId],
@@ -306,29 +309,88 @@ export const useGetCommentsForPost = (postId: string) => {
           Query.isNull("parentId"),
           Query.orderAsc("$createdAt"),
           Query.limit(50),
- Query.select(["$id", "content", "userId"]), // adjust as needed
         ]
       );
-     return res.documents.map((doc) => ({
-        $id: doc.$id,
-        content: doc.content,
-        user: doc.user || null, // prevent crash if user missing
-      }));
+
+      // 🔹 Map each comment to include its user info
+      const commentsWithUser = await Promise.all(
+        res.documents.map(async (comment) => {
+          try {
+            const userRes = await databases.getDocument(
+              DATABASE_ID,
+              USERS_COLLECTION_ID,
+              comment.userId
+            );
+
+            return {
+              ...comment,
+              user: {
+                name: userRes.name ?? "Unknown User",
+                imageUrl:
+                  userRes.imageUrl ?? "/assets/icons/profile-placeholder.svg",
+              },
+            };
+          } catch {
+            return {
+              ...comment,
+              user: {
+                name: "Unknown User",
+                imageUrl: "/assets/icons/profile-placeholder.svg",
+              },
+            };
+          }
+        })
+      );
+
+      return commentsWithUser;
     },
   });
 };
 
+
 // ✅ Fetch replies for a comment
 export const useGetRepliesForComment = (commentId: string) => {
-  return useQuery(["replies", commentId], async () => {
-    const res = await databases.listDocuments(DATABASE_ID, COMMENTS_COLLECTION_ID, [
-      Query.equal("parentId", commentId),
-      Query.orderAsc("$createdAt"),
-      Query.limit(50),
-    ]);
-    return res.documents;
+  return useQuery<ReplyWithUser[]>(["replies", commentId], async () => {
+    const res = await databases.listDocuments(
+      DATABASE_ID,
+      COMMENTS_COLLECTION_ID,
+      [
+        Query.equal("parentId", commentId),
+        Query.orderAsc("$createdAt"),
+        Query.limit(50),
+      ]
+    );
+
+    const repliesWithUser: ReplyWithUser[] = await Promise.all(
+      res.documents.map(async (reply) => {
+        try {
+          const userRes = await databases.getDocument(
+            DATABASE_ID,
+            USERS_COLLECTION_ID,
+            reply.userId
+          );
+
+          return {
+            ...reply,
+            user: {
+              name: userRes.name ?? "Unknown user",
+              imageUrl: userRes.imageUrl ?? "",
+            },
+          } as ReplyWithUser;
+        } catch {
+          return {
+            ...reply,
+            user: { name: "Unknown user", imageUrl: "" },
+          } as ReplyWithUser;
+        }
+      })
+    );
+
+    return repliesWithUser;
   });
 };
+
+
 
 // ✅ Add comment or reply
 export const useAddCommentOrReply = () => {

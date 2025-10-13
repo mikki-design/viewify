@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
+import { Helmet } from "react-helmet-async";
 
 import { Input } from "@/components/ui";
 import useDebounce from "@/hooks/useDebounce";
@@ -45,68 +46,82 @@ const Explore = () => {
     );
 
   const shouldShowSearchResults = searchValue !== "";
-  const shouldShowPosts = !shouldShowSearchResults && 
+  const shouldShowPosts =
+    !shouldShowSearchResults &&
     posts.pages.every((item) => item.documents.length === 0);
 
   return (
-    <div className="explore-container">
-      <div className="explore-inner_container">
-        <h2 className="h3-bold md:h2-bold w-full">Search Posts</h2>
-        <div className="flex gap-1 px-4 w-full rounded-lg bg-dark-4">
-          <img
-            src="/assets/icons/search.svg"
-            width={24}
-            height={24}
-            alt="search"
-          />
-          <Input
-            type="text"
-            placeholder="Search"
-            className="explore-search"
-            value={searchValue}
-            onChange={(e) => {
-              const { value } = e.target;
-              setSearchValue(value);
-            }}
-          />
+    <>
+      <Helmet>
+        <title>Explore | Viewify</title>
+        <meta
+          name="description"
+          content="Discover trending posts, search for creators, and explore popular content on Viewify — the GenZ social media platform."
+        />
+        <meta property="og:title" content="Explore | Viewify" />
+        <meta
+          property="og:description"
+          content="Search and explore trending posts on Viewify — the place to connect and share your ideas."
+        />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
+      <div className="explore-container">
+        <div className="explore-inner_container">
+          <h2 className="h3-bold md:h2-bold w-full">Search Posts</h2>
+          <div className="flex gap-1 px-4 w-full rounded-lg bg-dark-4">
+            <img
+              src="/assets/icons/search.svg"
+              width={24}
+              height={24}
+              alt="search"
+            />
+            <Input
+              type="text"
+              placeholder="Search"
+              className="explore-search"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="flex-between w-full max-w-5xl mt-16 mb-7">
-        <h3 className="body-bold md:h3-bold">Popular Today</h3>
+        <div className="flex-between w-full max-w-5xl mt-16 mb-7">
+          <h3 className="body-bold md:h3-bold">Popular Today</h3>
 
-        <div className="flex-center gap-3 bg-dark-3 rounded-xl px-4 py-2 cursor-pointer">
-          <p className="small-medium md:base-medium text-light-2">All</p>
-          <img
-            src="/assets/icons/filter.svg"
-            width={20}
-            height={20}
-            alt="filter"
-          />
+          <div className="flex-center gap-3 bg-dark-3 rounded-xl px-4 py-2 cursor-pointer">
+            <p className="small-medium md:base-medium text-light-2">All</p>
+            <img
+              src="/assets/icons/filter.svg"
+              width={20}
+              height={20}
+              alt="filter"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap gap-9 w-full max-w-5xl">
-        {shouldShowSearchResults ? (
-          <SearchResults
-            isSearchFetching={isSearchFetching}
-            searchedPosts={searchedPosts}
-          />
-        ) : shouldShowPosts ? (
-          <p className="text-light-4 mt-10 text-center w-full">End of posts</p>
-        ) : (
-          posts.pages.map((item, index) => (
-            <GridPostList key={`page-${index}`} posts={item.documents} />
-          ))
+        <div className="flex flex-wrap gap-9 w-full max-w-5xl">
+          {shouldShowSearchResults ? (
+            <SearchResults
+              isSearchFetching={isSearchFetching}
+              searchedPosts={searchedPosts}
+            />
+          ) : shouldShowPosts ? (
+            <p className="text-light-4 mt-10 text-center w-full">End of posts</p>
+          ) : (
+            posts.pages.map((item, index) => (
+              <GridPostList key={`page-${index}`} posts={item.documents} />
+            ))
+          )}
+        </div>
+
+        {hasNextPage && !searchValue && (
+          <div ref={ref} className="mt-10">
+            <Loader />
+          </div>
         )}
       </div>
-
-      {hasNextPage && !searchValue && (
-        <div ref={ref} className="mt-10">
-          <Loader />
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
