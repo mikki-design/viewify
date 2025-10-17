@@ -1,5 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import { useChat } from "@/context/ChatContext";
+import ForgotPassword from "@/_root/pages/ForgotPassword";
+import ResetPassword from "@/_root/pages/ResetPassword";
+import ResetPasswordConfirm from "@/_root/pages/ResetPasswordConfirm";
+
 
 import { X } from "lucide-react";
 
@@ -33,6 +37,10 @@ const App = () => {
         <Route element={<AuthLayout />}>
           <Route path="/sign-in" element={<SigninForm />} />
           <Route path="/sign-up" element={<SignupForm />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
+        
         </Route>
 
         {/* private routes */}
@@ -46,6 +54,7 @@ const App = () => {
           <Route path="/posts/:id" element={<PostDetails />} />
           <Route path="/profile/:id/*" element={<Profile />} />
           <Route path="/update-profile/:id" element={<UpdateProfile />} />
+            
           <Route
   path="/chat"
   element={<ChatModalWrapper />} // a page/component that renders <ChatModal />

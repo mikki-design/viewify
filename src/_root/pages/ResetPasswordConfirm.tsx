@@ -1,8 +1,9 @@
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Client, Account } from "appwrite";
 
 import {
   Form,
@@ -17,34 +18,48 @@ import { Button } from "@/components/ui/button";
 import Loader from "@/components/shared/Loader";
 import { useToast } from "@/components/ui/use-toast";
 
-import { SigninValidation } from "@/lib/validation";
-import { useSignInAccount } from "@/lib/react-query/queries";
-import { useUserContext } from "@/context/AuthContext";
+// ✅ Validation Schema
+const ResetPasswordValidation = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
-const SigninForm = () => {
+// ✅ Appwrite Setup
+const client = new Client()
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("687d64fb003444cfedc1");
+
+const account = new Account(client);
+
+const ResetPasswordConfirm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
-  const { mutateAsync: signInAccount, isLoading } = useSignInAccount();
+  const [searchParams] = useSearchParams();
+
+  const userId = searchParams.get("userId");
+  const secret = searchParams.get("secret");
 
   const [topError, setTopError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof SigninValidation>>({
-    resolver: zodResolver(SigninValidation),
+  const form = useForm<z.infer<typeof ResetPasswordValidation>>({
+    resolver: zodResolver(ResetPasswordValidation),
     defaultValues: {
-      email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
-  // ✅ Handle validation errors
+  // ✅ Validation error display
   useEffect(() => {
     const errors = form.formState.errors;
-    let firstError = null;
-
-    if (errors.email) firstError = errors.email.message;
-    if (errors.password) firstError = errors.password.message;
-
+    const firstError =
+      errors.password?.message || errors.confirmPassword?.message;
     if (firstError) {
       setTopError(firstError);
       toast({
@@ -52,46 +67,33 @@ const SigninForm = () => {
         description: firstError,
         variant: "destructive",
       });
-
       const timeout = setTimeout(() => setTopError(null), 4000);
       return () => clearTimeout(timeout);
     }
   }, [form.formState.errors, toast]);
 
-  // ✅ Sign-in handler
-  const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
+  // ✅ Handle password reset confirmation
+  const handleReset = async (data: z.infer<typeof ResetPasswordValidation>) => {
+    setIsLoading(true);
+    setTopError(null);
+
     try {
-      const session = await signInAccount(user);
-      if (!session) throw new Error("Invalid email or password");
-
-      const isLoggedIn = await checkAuthUser();
-      if (isLoggedIn) {
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${user.email}`,
-          variant: "default",
-        });
-        form.reset();
-        navigate("/");
-      } else {
-        throw new Error("Could not verify logged-in user");
-      }
-    } catch (err: any) {
-      let errorMessage = err?.message || "Something went wrong";
-
-      if (err?.code === 401 || errorMessage.includes("Invalid credentials")) {
-        errorMessage = "Invalid email or password";
-      }
-
-      setTopError(errorMessage);
+      await account.updateRecovery(userId!, secret!, data.password, data.confirmPassword);
       toast({
-        title: "Login failed",
-        description: errorMessage,
+        title: "Password Reset Successful",
+        description: "Redirecting you to login...",
+      });
+      setTimeout(() => navigate("/sign-in"), 3000);
+    } catch (err: any) {
+      const message = err?.message || "Failed to reset password. Please try again.";
+      setTopError(message);
+      toast({
+        title: "Reset Failed",
+        description: message,
         variant: "destructive",
       });
-
-      const timeout = setTimeout(() => setTopError(null), 4000);
-      return () => clearTimeout(timeout);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,73 +110,72 @@ const SigninForm = () => {
         <div className="sm:w-420 flex-center flex-col px-4 sm:px-0 pb-10">
           <img src="/assets/images/viewss.png" alt="logo" className="pt-40" />
 
-          <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">
-            Log in to your account
-          </h2>
+          <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">Set New Password</h2>
           <p className="text-light-3 small-medium md:base-regular mt-2">
-            Welcome back! Please enter your details.
+            Enter and confirm your new password below.
           </p>
 
           <form
-            onSubmit={form.handleSubmit(handleSignin)}
+            onSubmit={form.handleSubmit(handleReset)}
             className="flex flex-col gap-5 w-full mt-4"
           >
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="shad-form_label">Email</FormLabel>
-                  <FormControl>
-                    <Input type="text" className="shad-input" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="shad-form_label">Password</FormLabel>
+                  <FormLabel className="shad-form_label">New Password</FormLabel>
                   <FormControl>
-                    <Input type="password" className="shad-input" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Enter new password"
+                      className="shad-input"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* 🔗 Forgot Password link */}
-            <div className="text-right -mt-2">
-              <Link
-                to="/reset-password"
-                className="text-sm text-primary-500 hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="shad-form_label">Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Confirm new password"
+                      className="shad-input"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <Button type="submit" className="shad-button_primary">
-              {isLoading || isUserLoading ? (
+              {isLoading ? (
                 <div className="flex-center gap-2">
-                  <Loader /> Loading...
+                  <Loader /> Updating...
                 </div>
               ) : (
-                "Log in"
+                "Update Password"
               )}
             </Button>
 
             <p className="text-small-regular text-light-2 text-center mt-2">
-              Don&apos;t have an account?
-              <Link
-                to="/sign-up"
+              Remembered your password?
+              <button
+                type="button"
+                onClick={() => navigate("/sign-in")}
                 className="text-primary-500 text-small-semibold ml-1"
               >
-                Sign up
-              </Link>
+                Log in
+              </button>
             </p>
           </form>
         </div>
@@ -191,4 +192,4 @@ const SigninForm = () => {
   );
 };
 
-export default SigninForm;
+export default ResetPasswordConfirm;
