@@ -11,12 +11,15 @@ const Saved = () => {
   const savePosts =
     currentUser?.save
       ?.filter((savePost: Models.Document) => savePost?.post) // only valid posts
-      .map((savePost: Models.Document) => ({
-        ...savePost.post,
-        creator: {
-          imageUrl: currentUser.imageUrl,
-        },
-      }))
+     .map((savePost: Models.Document) => ({
+  ...savePost.post,
+  creator: {
+    name: currentUser.name,
+    username: currentUser.username,
+    imageUrl: currentUser.imageUrl,
+  },
+}))
+
       .reverse() || [];
 
   return (
