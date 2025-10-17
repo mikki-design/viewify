@@ -19,8 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { databases } from "@/lib/appwrite/config";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import { useState } from "react";
-import { X } from "lucide-react"; 
-import ChatBox from "@/components/chat/ChatBox";
+
 import { useChat } from "@/context/ChatContext";
 const DATABASE_ID = appwriteConfig.databaseId;
 const FOLLOWERS_COLLECTION_ID = appwriteConfig.followersCollectionId;

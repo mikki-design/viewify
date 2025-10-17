@@ -1,7 +1,7 @@
 import { Models } from "appwrite";
 import { Link } from "react-router-dom";
 import { PostStats } from "@/components/shared";
-import { useUserContext } from "@/context/AuthContext";
+
 
 type GridPostListProps = {
   posts: Models.Document[];
@@ -15,7 +15,7 @@ const GridPostList = ({
   showUser = true,
   showStats = true,
 }: GridPostListProps) => {
-  const { user } = useUserContext();
+  
 
   if (!posts || posts.length === 0) {
     return (

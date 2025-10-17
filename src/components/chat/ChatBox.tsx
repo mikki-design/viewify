@@ -3,7 +3,7 @@ import { fetchChatMessages, sendMessage, markMessagesAsRead } from "@/lib/appwri
 import { useUserContext } from "@/context/AuthContext";
 import { client } from "@/lib/appwrite/config";
 import { CheckCheck } from "lucide-react";
-import { useChat } from "@/context/ChatContext";
+
 
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID;
 const CHATS_COLLECTION_ID = import.meta.env.VITE_APPWRITE_CHATS_COLLECTION_ID;

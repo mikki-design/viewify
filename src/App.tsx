@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { useChat } from "@/context/ChatContext";
-import { useState } from "react";
+
 import { X } from "lucide-react";
 
 import {

@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import { INavLink } from "@/types";
@@ -9,8 +9,6 @@ import { useSignOutAccount } from "@/lib/react-query/queries";
 import { useUserContext, INITIAL_USER } from "@/context/AuthContext";
 import { useEffect } from "react";
 
-import ChatModal from "@/components/chat/ChatModal";
-import { useChat } from "@/context/ChatContext";
 import { fetchUserChats } from "@/lib/appwrite/api/chat";
 
 const LeftSidebar = () => {
@@ -19,10 +17,7 @@ const LeftSidebar = () => {
   const { user, setUser, setIsAuthenticated, isLoading } = useUserContext();
   const [unreadCount, setUnreadCount] = useState(0);
   
-  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   
-
-  const [isChatOpen, setIsChatOpen] = useState(false);
   useEffect(() => {
   if (!user?.id) return;
 
