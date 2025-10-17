@@ -32,10 +32,10 @@ const GridPostList = ({
         const imageUrl =
           post?.imageUrl || "/assets/icons/image-placeholder.svg";
 
-        const creator = post?.creator || {};
+        const user = post?.creator || {};
         const creatorImage =
-          creator?.imageUrl || "/assets/icons/profile-placeholder.svg";
-        const creatorName = creator?.name || "Unknown User";
+          user?.imageUrl || "/assets/icons/profile-placeholder.svg";
+        const creatorName = user?.username || "Unknown User";
 
         return (
           <li key={post.$id} className="relative min-w-80 h-80">

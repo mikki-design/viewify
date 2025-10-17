@@ -4,6 +4,24 @@
 @tailwind components;
 @tailwind utilities;
 
+[data-sonner-toaster],
+.toaster {
+  z-index: 99999 !important;
+}
+
+@media (max-width: 640px) {
+  [data-sonner-toaster],
+  .toaster {
+    width: 90vw !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: 20px !important;
+  }
+}
+
+
+
+
 @layer base {
   * {
     @apply box-border list-none p-0 m-0 scroll-smooth;

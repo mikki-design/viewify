@@ -10,6 +10,7 @@ export const appwriteConfig = {
   savesCollectionId: import.meta.env.VITE_APPWRITE_SAVES_COLLECTION_ID,
   followersCollectionId: import.meta.env.VITE_APPWRITE_FOLLOWERS_COLLECTION_ID,
   commentsCollectionId: import.meta.env.VITE_APPWRITE_COMMENTS_COLLECTION_ID,
+  chatsCollectionId: import.meta.env.VITE_APPWRITE_CHATS_COLLECTION_ID,
 };
 
 export const client = new Client();

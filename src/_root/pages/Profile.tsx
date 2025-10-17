@@ -19,8 +19,12 @@ import { useQuery } from "@tanstack/react-query";
 import { databases } from "@/lib/appwrite/config";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import { useState } from "react";
+import { X } from "lucide-react"; 
+import ChatBox from "@/components/chat/ChatBox";
+import { useChat } from "@/context/ChatContext";
 const DATABASE_ID = appwriteConfig.databaseId;
 const FOLLOWERS_COLLECTION_ID = appwriteConfig.followersCollectionId;
+
 
 interface StabBlockProps {
   value: string | number;
@@ -86,7 +90,9 @@ export const useIsFollowing = (followerId: string, followedId: string) => {
 };
 
 
-const Profile = () => {
+const Profile = () =>  {
+  
+  const { setShowChat, setReceiverId } = useChat();
   const { id } = useParams();
   const { user } = useUserContext();
   const { pathname } = useLocation();
@@ -160,32 +166,52 @@ const [isLocallyFollowing, setIsLocallyFollowing] = useState<boolean | null>(nul
             </p>
           </div>
 
-       <div className="flex justify-center gap-4">
+      <div className="flex justify-center gap-4">
   {user.id === currentUser.$id ? (
     <Link
       to={`/update-profile/${currentUser.$id}`}
       className="h-12 bg-dark-4 px-5 text-light-1 flex-center gap-2 rounded-lg"
     >
-      <img
-        src="/assets/icons/edit.svg"
-        alt="edit"
-        width={20}
-        height={20}
-      />
+      <img src="/assets/icons/edit.svg" alt="edit" width={20} height={20} />
       <p className="flex whitespace-nowrap small-medium">Edit Profile</p>
     </Link>
   ) : (
-    <Button
-      type="button"
-      className="shad-button_primary px-8"
-      onClick={handleFollow}
-      disabled={isLoading}
-    >
-      {isLocallyFollowing ?? followDoc ? 'Followed' : 'Follow'}
+    <>
+      {/* 🧍 Follow button */}
+      <Button
+        type="button"
+        className="shad-button_primary px-8"
+        onClick={handleFollow}
+        disabled={isLoading}
+      >
+        {isLocallyFollowing ?? followDoc ? "Followed" : "Follow"}
+      </Button>
 
-    </Button>
+      {/* 💬 Chat button — only for other users */}
+      {/* 💬 Chat button — matches Follow button style */}
+<Button
+  type="button"
+  className="shad-button_primary px-8 flex items-center gap-2"
+  onClick={() => {
+    setReceiverId(currentUser.$id);
+    setShowChat(true);
+  }}
+>
+  <img
+    src="/assets/icons/chat.svg"
+    alt="chat"
+    width={20}
+    height={20}
+    className="invert brightness-0" // ✅ makes icon white
+  />
+  <span>Chat</span>
+</Button>
+
+
+    </>
   )}
 </div>
+
 
         </div>
       </div>
@@ -210,6 +236,7 @@ const [isLocallyFollowing, setIsLocallyFollowing] = useState<boolean | null>(nul
             <img src={"/assets/icons/like.svg"} alt="like" width={20} height={20} />
             Liked Posts
           </Link>
+         
         </div>
       )}
 
@@ -222,6 +249,7 @@ const [isLocallyFollowing, setIsLocallyFollowing] = useState<boolean | null>(nul
           <Route path="/liked-posts" element={<LikedPosts />} />
         )}
       </Routes>
+     
       <Outlet />
     </div>
   );
