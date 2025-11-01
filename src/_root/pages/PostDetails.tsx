@@ -175,7 +175,21 @@ const PostDetails = () => {
         <Loader />
       ) : (
         <div className="post_details-card">
-          <img src={post?.imageUrl} alt="creator" className="post_details-img" />
+          {/* Display Image or Video */}
+{post?.videoUrl ? (
+  <video
+    src={post.videoUrl}
+    poster={post.thumbnailUrl}
+    controls
+    className="post_details-img rounded-xl"
+  />
+) : (
+  <img
+    src={post?.imageUrl}
+    alt="post"
+    className="post_details-img rounded-xl"
+  />
+)}
 
           <div className="post_details-info">
             <div className="flex-between w-full">

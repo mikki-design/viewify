@@ -162,3 +162,23 @@ export const fetchUserChats = async (userId: string) => {
   }
 };
 
+
+// ✏️ Edit message
+export async function updateMessage(messageId: string, newText: string) {
+  return await databases.updateDocument(
+    DATABASE_ID,
+    CHATS_COLLECTION_ID,
+    messageId,
+    { message: newText }
+  );
+}
+
+// 🗑 Delete message
+export async function deleteMessage(messageId: string) {
+  return await databases.deleteDocument(
+    DATABASE_ID,
+    CHATS_COLLECTION_ID,
+    messageId
+  );
+}
+

@@ -2,6 +2,7 @@ import { ID, Permission, Query, Role } from "appwrite";
 
 import { appwriteConfig, account, databases, storage, avatars } from "./config";
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
+import { uploadVideoToCloudinary } from "@/lib/cloudinary";
 
 // ============================================================
 // AUTH
@@ -120,46 +121,96 @@ export async function signOutAccount() {
 // ============================== CREATE POST
 export async function createPost(post: INewPost) {
   try {
-    // Upload file to appwrite storage
-    const uploadedFile = await uploadFile(post.file[0]);
+    const file = post.file[0];
+    let fileType = "";
+    let imageUrl = "";
+    let imageId = "";
+    let videoUrl = "";
+    let thumbnailUrl = "";
 
-    if (!uploadedFile) throw Error;
+    if (file) {
+      fileType = file.type.split("/")[0];
 
-    // Get file url
-    const fileUrl = getFileView(uploadedFile.$id);
-    if (!fileUrl) {
-      await deleteFile(uploadedFile.$id);
-      throw Error;
+      // ===================== VIDEO UPLOAD =====================
+      if (fileType === "video") {
+        // 1) Upload video to Cloudinary
+        const cloudinaryResult = await uploadVideoToCloudinary(file);
+        videoUrl = cloudinaryResult.secure_url;
+
+        // 2) Generate thumbnail via Cloudinary transformation
+        const thumbnailImageUrl = cloudinaryResult.secure_url.replace(
+          "/upload/",
+          "/upload/w_500,h_500,c_fill/"
+        );
+
+        // 3) Download the thumbnail as a Blob
+        const thumbnailBlob = await fetch(thumbnailImageUrl).then((r) => r.blob());
+        const thumbnailFile = new File(
+          [thumbnailBlob],
+          `thumbnail-${Date.now()}.jpg`,
+          { type: "image/jpeg" }
+        );
+
+        // 4) Upload thumbnail to Appwrite Storage
+        const uploadedThumbnail = await storage.createFile(
+          appwriteConfig.storageId,
+          ID.unique(),
+          thumbnailFile,
+          [Permission.read(Role.any())]
+        );
+
+        // 5) Get accessible URL
+        thumbnailUrl = getFileView(uploadedThumbnail.$id);
+      }
+
+      // ===================== IMAGE UPLOAD =====================
+      else {
+        const uploadedFile = await uploadFile(file);
+        if (!uploadedFile) throw Error;
+
+        imageUrl = getFileView(uploadedFile.$id);
+        imageId = uploadedFile.$id;
+      }
     }
 
     // Convert tags into array
     const tags = post.tags?.replace(/ /g, "").split(",") || [];
 
-    // Create post
+    // ✅ Build dynamic post data object
+    const postData: any = {
+      creator: post.userId,
+      caption: post.caption,
+      location: post.location,
+      tags: tags,
+    };
+
+    // If image
+    if (fileType === "image") {
+      postData.imageUrl = imageUrl;
+      postData.imageId = imageId;
+    }
+
+    // If video
+    if (fileType === "video") {
+      postData.videoUrl = videoUrl;
+      postData.thumbnailUrl = thumbnailUrl;
+    }
+
+    // ✅ Create post
     const newPost = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
       ID.unique(),
-      {
-        creator: post.userId,
-        caption: post.caption,
-        imageUrl: fileUrl,
-        imageId: uploadedFile.$id,
-        location: post.location,
-        tags: tags,
-      }
+      postData
     );
-
-    if (!newPost) {
-      await deleteFile(uploadedFile.$id);
-      throw Error;
-    }
 
     return newPost;
   } catch (error) {
     console.log(error);
   }
 }
+
+
 
 // ============================== UPLOAD FILE
 export async function uploadFile(file: File) {

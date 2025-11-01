@@ -28,36 +28,38 @@ const ChatModal = ({ isOpen, onClose, onSelectChat }: ChatModalProps) => {
           <Dialog.Title className="text-xl font-semibold mb-4">
             Chats
           </Dialog.Title>
-          {chatUsers.length === 0 ? (
-            <p className="text-gray-400 text-sm">No chats yet</p>
-          ) : (
-            <ul className="space-y-3">
-              {chatUsers.map((u) => (
-                <li
-                  key={u.$id}
-                  className="flex items-center justify-between bg-dark-3 p-3 rounded-lg hover:bg-dark-4 cursor-pointer"
-                  onClick={() => {
-                    onSelectChat(u.$id);
-                    onClose();
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={u.imageUrl || "/assets/icons/profile-placeholder.svg"}
-                      alt={u.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <span className="text-white font-medium">{u.name}</span>
-                  </div>
-                  {u.unread > 0 && (
-      <span className="text-xs bg-red-500 text-white rounded-full px-2 py-0.5">
-        {u.unread}
-      </span>
-    )}
-                </li>
-              ))}
-            </ul>
-          )}
+         {chatUsers.length === 0 ? (
+  <p className="text-gray-400 text-sm">No chats yet</p>
+) : (
+  <ul className="space-y-3 max-h-80 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-dark-4 scrollbar-track-dark-2">
+    {chatUsers.map((u) => (
+      <li
+        key={u.$id}
+        className="flex items-center justify-between bg-dark-3 p-3 rounded-lg hover:bg-dark-4 cursor-pointer"
+        onClick={() => {
+          onSelectChat(u.$id);
+          onClose();
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <img
+            src={u.imageUrl || "/assets/icons/profile-placeholder.svg"}
+            alt={u.name}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <span className="text-white font-medium">{u.name}</span>
+        </div>
+
+        {u.unread > 0 && (
+          <span className="text-xs bg-red-500 text-white rounded-full px-2 py-0.5">
+            {u.unread}
+          </span>
+        )}
+      </li>
+    ))}
+  </ul>
+)}
+
         </Dialog.Panel>
       </div>
     </Dialog>

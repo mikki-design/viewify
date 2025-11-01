@@ -307,3 +307,17 @@
 .animate-slideDown {
   animation: slideDown 0.3s ease-out;
 }
+
+/* Optional nice scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #222;
+}

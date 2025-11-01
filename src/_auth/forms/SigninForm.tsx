@@ -28,6 +28,8 @@ const SigninForm = () => {
   const { mutateAsync: signInAccount, isLoading } = useSignInAccount();
 
   const [topError, setTopError] = useState<string | null>(null);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
 
   const form = useForm<z.infer<typeof SigninValidation>>({
     resolver: zodResolver(SigninValidation),
@@ -166,6 +168,20 @@ const SigninForm = () => {
                 "Log in"
               )}
             </Button>
+
+            {/* Download App button visible only on Android */}
+{isAndroid && (
+  <a
+    href="https://your-app-link.com/app.apk"
+    download
+    className="w-full"
+  >
+    <Button className="shad-button_primary w-full mt-3">
+      Download App (.apk)
+    </Button>
+  </a>
+)}
+
 
             <p className="text-small-regular text-light-2 text-center mt-2">
               Don&apos;t have an account?

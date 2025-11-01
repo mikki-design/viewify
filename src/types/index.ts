@@ -29,6 +29,10 @@ export type INewPost = {
   userId: string;
   caption: string;
   file: File[];
+  imageId?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
   location?: string;
   tags?: string;
 };
@@ -38,12 +42,15 @@ export type IUpdatePost = {
   caption: string;
   imageId: string;
   imageUrl: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
   file: File[];
   location?: string;
   tags?: string;
 };
 
 export type IUser = {
+  $id: string;
   id: string;
   name: string;
   username: string;
@@ -61,6 +68,7 @@ export type INewUser = {
 export type CommentType = Models.Document & {
   content: string;
   user?: {
+    $id?: string;
     name?: string;
     imageUrl?: string;
   };

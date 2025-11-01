@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { CommentType } from "@/types";
+import { useUserContext } from "@/context/AuthContext";
 import { useGetRepliesForComment } from "@/lib/react-query/queries";
+import { useUpdateComment, useDeleteComment } from "@/lib/react-query/queries";
 
 const Comment = ({
   comment,
@@ -19,14 +21,19 @@ const Comment = ({
   handleReplySubmit: (e: React.FormEvent, parentId: string) => void;
   depth?: number;
 }) => {
+  const { user } = useUserContext();
   const { data: replies } = useGetRepliesForComment(comment.$id);
 
-  // Function to open reply box and prefill mention
+  const updateCommentMutation = useUpdateComment();
+  const deleteCommentMutation = useDeleteComment();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+
   const handleReplyClick = () => {
     const tag = `@${comment.user?.name || "Unknown User"} `;
     setActiveReply(comment.$id);
 
-    // If not already prefixed with the tag, prefill it
     if (!replyTexts[comment.$id]?.startsWith(tag)) {
       handleReplyChange(comment.$id, tag);
     }
@@ -34,67 +41,103 @@ const Comment = ({
 
   return (
     <div className="flex flex-col">
-      {/* --- Comment Block --- */}
       <div className="relative flex items-start gap-3 py-3">
-        {/* Vertical line for grouping replies */}
-        {depth > 0 && (
-          <div className="absolute left-[14px] top-0 bottom-0 w-px bg-dark-3"></div>
-        )}
+        {depth > 0 && <div className="absolute left-[14px] top-0 bottom-0 w-px bg-dark-3"></div>}
 
-        {/* Avatar */}
         <img
           src={comment.user?.imageUrl || "/assets/icons/profile-placeholder.svg"}
           alt={comment.user?.name}
           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover z-10"
         />
 
-        {/* Comment content */}
         <div className="flex-1 bg-dark-3 rounded-xl p-3 sm:p-4 border border-dark-3">
-          {/* Username */}
           <p className="text-xs sm:text-sm md:text-base font-semibold text-light-1">
             {comment.user?.name || "Unknown User"}
           </p>
 
-          {/* Content */}
-          <p className="text-[11px] sm:text-sm md:text-[15px] text-light-2 leading-relaxed whitespace-pre-wrap">
-            {comment.content}
-          </p>
+          {isEditing ? (
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="bg-dark-4 rounded px-2 py-1 w-full text-light-1 mt-1"
+            />
+          ) : (
+            <p className="text-[11px] sm:text-sm md:text-[15px] text-light-2 leading-relaxed whitespace-pre-wrap mt-1">
+              {comment.content}
+            </p>
+          )}
 
-          {/* Reply button */}
-          <button
-            onClick={handleReplyClick}
-            className="text-primary-500 text-xs sm:text-sm font-medium mt-1 hover:underline"
-          >
-            Reply
-          </button>
+          <div className="flex gap-3 mt-2 text-xs">
+            <button
+              onClick={handleReplyClick}
+              className="text-primary-500 font-medium hover:underline"
+            >
+              Reply
+            </button>
+
+            {/* ✅ Show Edit/Delete only if user owns comment */}
+            {user?.$id === comment.user?.$id && (
+              <>
+                {isEditing ? (
+                  <button
+  onClick={() => {
+    updateCommentMutation.mutate(
+      { commentId: comment.$id, content: editText },
+      {
+        onSuccess: () => {
+          comment.content = editText; // ✅ Update UI immediately
+          setIsEditing(false);
+        }
+      }
+    );
+  }}
+  className="text-green-400 font-medium"
+>
+  Save
+</button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-yellow-400 font-medium"
+                  >
+                    Edit
+                  </button>
+                )}
+
+                <button
+                  onClick={() => deleteCommentMutation.mutate({
+  commentId: comment.$id
+})}
+                  className="text-red-400 font-medium"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* --- Reply Input --- */}
       {activeReply === comment.$id && (
-        <form
-          onSubmit={(e) => handleReplySubmit(e, comment.$id)}
-          className="flex flex-col gap-2 ml-1 mt-1"
-        >
+        <form onSubmit={(e) => handleReplySubmit(e, comment.$id)} className="ml-1 mt-1 flex flex-col gap-2">
           <textarea
             placeholder="Write a reply..."
             value={replyTexts[comment.$id] || ""}
             onChange={(e) => handleReplyChange(comment.$id, e.target.value)}
-            className="w-full min-h-[60px] bg-dark-3 rounded-lg px-3 py-2 text-xs sm:text-sm md:text-base text-light-1 placeholder:text-light-3 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            className="w-full min-h-[60px] bg-dark-3 rounded-lg px-3 py-2 text-light-1"
           />
           <button
             type="submit"
             disabled={!replyTexts[comment.$id]?.trim()}
-            className="self-end px-4 py-2 text-xs sm:text-sm font-medium rounded-lg bg-primary-500 text-white disabled:opacity-50 hover:bg-primary-600 transition"
+            className="self-end px-4 py-2 bg-primary-500 text-white rounded disabled:opacity-50"
           >
             Reply
           </button>
         </form>
       )}
 
-      {/* --- Recursive Replies --- */}
       {replies && replies.length > 0 && (
-        <div className="ml-1 sm:ml-1 border-l border-dark-3 pl-5 flex flex-col gap-3">
+        <div className="ml-4 border-l border-dark-3 pl-5 flex flex-col gap-3">
           {replies.map((reply) => (
             <Comment
               key={reply.$id}

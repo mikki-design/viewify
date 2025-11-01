@@ -114,13 +114,19 @@ const PostCard = ({ post }: PostCardProps) => {
       </ul>
 
       {/* ✅ Post Image */}
-      {post.imageUrl && (
-        <img
-          src={post.imageUrl}
-          alt="post image"
-          className="post-card_img"
-        />
-      )}
+     {post.videoUrl ? (
+  <video 
+    src={post.videoUrl} 
+    controls 
+    className="rounded-xl max-h-[500px] object-cover"
+  />
+) : (
+  <img 
+    src={post.thumbnailUrl || post.imageUrl} 
+    alt="post" 
+    className="rounded-xl object-cover"
+  />
+)}
 
       {/* ✅ Post Stats + Comment Count */}
       <PostStats post={post} userId={user.id} commentCount={commentCount} />

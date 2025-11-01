@@ -344,6 +344,7 @@ export const useGetCommentsForPost = (postId: string) => {
 
       return commentsWithUser;
     },
+     staleTime: 0, // ✅ forces query to refetch on invalidate
   });
 };
 
@@ -450,3 +451,74 @@ export const useDeleteReply = () => {
   });
 };
 */
+
+export const updateComment = async (commentId: string, content: string) => {
+  return await databases.updateDocument(
+    DATABASE_ID,
+    COMMENTS_COLLECTION_ID,
+    commentId,
+    { content }  // <-- IMPORTANT
+  );
+};
+export const deleteComment = async (commentId: string) => {
+  const comment = await databases.getDocument(
+    DATABASE_ID,
+    COMMENTS_COLLECTION_ID,
+    commentId
+  );
+  await databases.deleteDocument(DATABASE_ID, COMMENTS_COLLECTION_ID, commentId);
+  return comment; // return so we can invalidate queries properly
+};
+
+// ✅ Update a comment or reply
+export const useUpdateComment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    async ({ commentId, content }: { commentId: string; content: string }) => {
+      return await updateComment(commentId, content);
+    },
+    {
+      onSuccess: (updatedComment) => {
+        const postId = updatedComment.postId;
+        const parentId = updatedComment.parentId;
+
+        if (parentId) {
+          // Refresh replies for parent
+          queryClient.invalidateQueries(["replies", parentId]);
+        } else {
+          // Refresh top-level comments for post
+          queryClient.invalidateQueries(["comments", postId]);
+        }
+      },
+    }
+  );
+};
+
+
+
+
+
+
+// ✅ Delete a comment or reply
+export const useDeleteComment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    async ({ commentId }: { commentId: string }) => {
+      return await deleteComment(commentId);
+    },
+    {
+      onSuccess: (deletedComment) => {
+        const postId = deletedComment?.postId;
+        const parentId = deletedComment?.parentId;
+
+        if (parentId) {
+          queryClient.invalidateQueries(["replies", parentId]);
+        } else if (postId) {
+          queryClient.invalidateQueries(["comments", postId]);
+        }
+      },
+    }
+  );
+};

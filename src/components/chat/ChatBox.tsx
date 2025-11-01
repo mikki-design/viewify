@@ -3,6 +3,7 @@ import { fetchChatMessages, sendMessage, markMessagesAsRead } from "@/lib/appwri
 import { useUserContext } from "@/context/AuthContext";
 import { client } from "@/lib/appwrite/config";
 import { CheckCheck } from "lucide-react";
+import { updateMessage, deleteMessage } from "@/lib/appwrite/api/chat";
 
 
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID;
@@ -18,6 +19,28 @@ const ChatBox = ({ receiverId }: ChatBoxProps) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+const [editText, setEditText] = useState("");
+
+
+
+
+const handleEditStart = (msg: any) => {
+  setEditingMessageId(msg.$id);
+  setEditText(msg.message);
+};
+
+const handleEditSave = async () => {
+  await updateMessage(editingMessageId!, editText);
+  setEditingMessageId(null);
+  setEditText("");
+};
+
+const handleDelete = async (msgId: string) => {
+  await deleteMessage(msgId);
+  setMessages((prev) => prev.filter((m) => m.$id !== msgId));
+};
+
 
   
   // 🔹 Scroll to the latest message
@@ -117,40 +140,75 @@ useEffect(() => {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-md border rounded-xl bg-dark-2 p-4">
+    <div className="flex flex-col w-full border rounded-xl bg-dark-2 p-4">
+
+
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto mb-3 space-y-2 max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-700">
         {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex ${
-              msg.senderId === user.id ? "justify-end" : "justify-start"
+  <div
+    key={idx}
+    className={`flex ${msg.senderId === user.id ? "justify-end" : "justify-start"}`}
+  >
+    <div className="relative group">
+      <div
+        className={`p-2 rounded-lg max-w-[85%] break-words transition-colors duration-300 ${
+          msg.senderId === user.id
+            ? "bg-blue-600 text-white ml-auto"
+            : "bg-gray-700 text-white"
+        }`}
+      >
+        {/* If editing */}
+        {editingMessageId === msg.$id ? (
+          <input
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            className="bg-white text-black rounded p-1 w-full"
+          />
+        ) : (
+          msg.message
+        )}
+
+        {msg.senderId === user.id && (
+          <CheckCheck
+            size={16}
+            className={`absolute bottom-1 right-2 ${
+              msg.read ? "text-green-400" : "text-gray-400"
             }`}
-          >
-            <div
-              className={`relative p-2 rounded-lg max-w-[70%] break-words transition-colors duration-300 ${
-                msg.senderId === user.id
-                  ? "bg-blue-600 text-white self-end ml-auto"
-                  : "bg-gray-700 text-white self-start"
-              }`}
+          />
+        )}
+      </div>
+
+      {/* ⋮ Menu - Only for user messages */}
+      {msg.senderId === user.id && (
+        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition">
+          {editingMessageId === msg.$id ? (
+            <button
+              onClick={handleEditSave}
+              className="text-xs bg-green-500 px-2 py-1 rounded mr-1"
             >
-              {msg.message}
+              Save
+            </button>
+          ) : (
+            <button
+              onClick={() => handleEditStart(msg)}
+              className="text-xs bg-yellow-500 px-2 py-1 rounded mr-1"
+            >
+              Edit
+            </button>
+          )}
+          <button
+            onClick={() => handleDelete(msg.$id)}
+            className="text-xs bg-red-500 px-2 py-1 rounded"
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+))}
 
-              {/* ✅ Double tick for sender */}
-              {msg.senderId === user.id && (
-                <div className="absolute bottom-1 right-2 flex items-center">
-                 <CheckCheck
-  size={16}
-  className={`transition-colors duration-300 ${
-    msg.read ? "text-green-500" : "text-gray-400"
-  }`}
-/>
-
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
         <div ref={messagesEndRef} />
       </div>
 
