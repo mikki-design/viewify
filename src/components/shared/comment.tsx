@@ -68,53 +68,52 @@ const Comment = ({
           )}
 
           <div className="flex gap-3 mt-2 text-xs">
-            <button
-              onClick={handleReplyClick}
-              className="text-primary-500 font-medium hover:underline"
-            >
-              Reply
-            </button>
+  <button
+    onClick={handleReplyClick}
+    className="text-primary-500 font-medium hover:underline"
+  >
+    Reply
+  </button>
 
-            {/* ✅ Show Edit/Delete only if user owns comment */}
-            {user?.$id === comment.user?.$id && (
-              <>
-                {isEditing ? (
-                  <button
-  onClick={() => {
-    updateCommentMutation.mutate(
-      { commentId: comment.$id, content: editText },
-      {
-        onSuccess: () => {
-          comment.content = editText; // ✅ Update UI immediately
-          setIsEditing(false);
-        }
-      }
-    );
-  }}
-  className="text-green-400 font-medium"
->
-  Save
-</button>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="text-yellow-400 font-medium"
-                  >
-                    Edit
-                  </button>
-                )}
+  {user?.id === comment.userId && (
+  <>
+    {isEditing ? (
+      <button
+        onClick={() => {
+          updateCommentMutation.mutate(
+            { commentId: comment.$id, content: editText },
+            {
+              onSuccess: () => {
+                comment.content = editText;
+                setIsEditing(false);
+              },
+            }
+          );
+        }}
+        className="text-green-400 font-medium"
+      >
+        Save
+      </button>
+    ) : (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="text-yellow-400 font-medium"
+      >
+        Edit
+      </button>
+    )}
 
-                <button
-                  onClick={() => deleteCommentMutation.mutate({
-  commentId: comment.$id
-})}
-                  className="text-red-400 font-medium"
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
+    <button
+      onClick={() => deleteCommentMutation.mutate({ commentId: comment.$id })}
+      className="text-red-400 font-medium"
+    >
+      Delete
+    </button>
+  </>
+)}
+
+</div>
+
         </div>
       </div>
 

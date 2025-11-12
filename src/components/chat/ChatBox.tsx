@@ -76,18 +76,20 @@ useEffect(() => {
       }
 
       // Message updated (read status changed)
-      if (res.events.includes("databases.*.collections.*.documents.*.update")) {
-        if (
-          (newMsg.senderId === user.id && newMsg.receiverId === receiverId) ||
-          (newMsg.senderId === receiverId && newMsg.receiverId === user.id)
-        ) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.$id === newMsg.$id ? { ...m, read: newMsg.read } : m
-            )
-          );
-        }
-      }
+     // Message updated (edited or read)
+if (res.events.includes("databases.*.collections.*.documents.*.update")) {
+  if (
+    (newMsg.senderId === user.id && newMsg.receiverId === receiverId) ||
+    (newMsg.senderId === receiverId && newMsg.receiverId === user.id)
+  ) {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.$id === newMsg.$id ? { ...m, ...newMsg } : m
+      )
+    );
+  }
+}
+
     }
   );
 

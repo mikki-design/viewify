@@ -50,7 +50,7 @@ export type IUpdatePost = {
 };
 
 export type IUser = {
-  $id: string;
+  
   id: string;
   name: string;
   username: string;
@@ -68,7 +68,7 @@ export type INewUser = {
 export type CommentType = Models.Document & {
   content: string;
   user?: {
-    $id?: string;
+    id?: string;
     name?: string;
     imageUrl?: string;
   };
