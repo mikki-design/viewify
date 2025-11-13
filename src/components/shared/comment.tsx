@@ -4,6 +4,16 @@ import { useUserContext } from "@/context/AuthContext";
 import { useGetRepliesForComment } from "@/lib/react-query/queries";
 import { useUpdateComment, useDeleteComment } from "@/lib/react-query/queries";
 
+interface CommentProps {
+  comment: CommentType;
+  activeReply: string | null;
+  setActiveReply: (id: string | null) => void;
+  replyTexts: { [key: string]: string };
+  handleReplyChange: (id: string, value: string) => void;
+  handleReplySubmit: (e: React.FormEvent, parentId: string) => void;
+  depth?: number;
+}
+
 const Comment = ({
   comment,
   activeReply,
@@ -12,15 +22,7 @@ const Comment = ({
   handleReplyChange,
   handleReplySubmit,
   depth = 0,
-}: {
-  comment: CommentType;
-  activeReply: string | null;
-  setActiveReply: (id: string | null) => void;
-  replyTexts: { [key: string]: string };
-  handleReplyChange: (id: string, value: string) => void;
-  handleReplySubmit: (e: React.FormEvent, parentId: string) => void;
-  depth?: number;
-}) => {
+}: CommentProps) => {
   const { user } = useUserContext();
   const { data: replies } = useGetRepliesForComment(comment.$id);
 
@@ -39,14 +41,25 @@ const Comment = ({
     }
   };
 
+  // ⭐ FIXED: COMMENT OWNER CHECK FOR BOTH COMMENTS & REPLIES
+  const commentOwnerId =
+    comment.userId ||                           // top-level
+    comment.user?.$id ||                       // nested replies
+    comment.user?.id ||                        // fallback
+    null;
+
+  const isOwner = user?.id === commentOwnerId;
+
   return (
     <div className="flex flex-col">
       <div className="relative flex items-start gap-3 py-3">
-        {depth > 0 && <div className="absolute left-[14px] top-0 bottom-0 w-px bg-dark-3"></div>}
+        {depth > 0 && (
+          <div className="absolute left-[14px] top-0 bottom-0 w-px bg-dark-3"></div>
+        )}
 
         <img
           src={comment.user?.imageUrl || "/assets/icons/profile-placeholder.svg"}
-          alt={comment.user?.name}
+          alt={comment.user?.name || "User"}
           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover z-10"
         />
 
@@ -68,57 +81,63 @@ const Comment = ({
           )}
 
           <div className="flex gap-3 mt-2 text-xs">
-  <button
-    onClick={handleReplyClick}
-    className="text-primary-500 font-medium hover:underline"
-  >
-    Reply
-  </button>
+            <button
+              onClick={handleReplyClick}
+              className="text-primary-500 font-medium hover:underline"
+            >
+              Reply
+            </button>
 
-  {user?.id === comment.userId && (
-  <>
-    {isEditing ? (
-      <button
-        onClick={() => {
-          updateCommentMutation.mutate(
-            { commentId: comment.$id, content: editText },
-            {
-              onSuccess: () => {
-                comment.content = editText;
-                setIsEditing(false);
-              },
-            }
-          );
-        }}
-        className="text-green-400 font-medium"
-      >
-        Save
-      </button>
-    ) : (
-      <button
-        onClick={() => setIsEditing(true)}
-        className="text-yellow-400 font-medium"
-      >
-        Edit
-      </button>
-    )}
+            {/* ⭐ FIXED: NOW WORKS FOR BOTH COMMENTS AND REPLIES */}
+            {isOwner && (
+              <>
+                {isEditing ? (
+                 <button
+  onClick={() => {
+    updateCommentMutation.mutate(
+      { commentId: comment.$id, content: editText },
+      {
+        onSuccess: () => {
+          comment.content = editText;  // ✅ Forces UI to update instantly
+          setIsEditing(false);
+        },
+      }
+    );
+  }}
+  className="text-green-400 font-medium"
+>
+  Save
+</button>
 
-    <button
-      onClick={() => deleteCommentMutation.mutate({ commentId: comment.$id })}
-      className="text-red-400 font-medium"
-    >
-      Delete
-    </button>
-  </>
-)}
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-yellow-400 font-medium"
+                  >
+                    Edit
+                  </button>
+                )}
 
-</div>
-
+                <button
+                  onClick={() =>
+                    deleteCommentMutation.mutate({ commentId: comment.$id })
+                  }
+                  className="text-red-400 font-medium"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Reply form */}
       {activeReply === comment.$id && (
-        <form onSubmit={(e) => handleReplySubmit(e, comment.$id)} className="ml-1 mt-1 flex flex-col gap-2">
+        <form
+          onSubmit={(e) => handleReplySubmit(e, comment.$id)}
+          className="ml-1 mt-1 flex flex-col gap-2"
+        >
           <textarea
             placeholder="Write a reply..."
             value={replyTexts[comment.$id] || ""}
@@ -135,6 +154,7 @@ const Comment = ({
         </form>
       )}
 
+      {/* Nested replies */}
       {replies && replies.length > 0 && (
         <div className="ml-4 border-l border-dark-3 pl-5 flex flex-col gap-3">
           {replies.map((reply) => (

@@ -112,21 +112,67 @@ const PostCard = ({ post }: PostCardProps) => {
           </li>
         ))}
       </ul>
+{/* ✅ Post Image / Video */}
+{post.videoUrl ? (
+  <div className="relative w-full rounded-xl overflow-hidden group">
+    <video
+      src={post.videoUrl}
+      ref={(el) => {
+        if (!el) return;
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) entry.target.play().catch(() => {});
+              else entry.target.pause();
+            });
+          },
+          { threshold: 0.5 }
+        );
+        observer.observe(el);
+      }}
+      muted
+      loop
+      playsInline
+      className="w-full object-contain rounded-xl cursor-pointer"
+      onClick={(e) => {
+        const video = e.currentTarget;
+        if (video.paused) video.play();
+        else video.pause();
+      }}
+    />
 
-      {/* ✅ Post Image */}
-     {post.videoUrl ? (
-  <video 
-    src={post.videoUrl} 
-    controls 
-    className="rounded-xl max-h-[500px] object-cover"
-  />
+    {/* Play/Pause Overlay (visible on hover or when paused) */}
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        const video = (e.currentTarget.parentElement?.querySelector("video") as HTMLVideoElement);
+        if (!video) return;
+        if (video.paused) video.play();
+        else video.pause();
+      }}
+      className="absolute inset-0 flex items-center justify-center pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-16 h-16 text-white drop-shadow-lg"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        {/* Pause icon; will also serve as play when video is paused */}
+        <path d="M6 4h4v16H6zm8 0h4v16h-4z" />
+      </svg>
+    </button>
+  </div>
 ) : (
-  <img 
-    src={post.thumbnailUrl || post.imageUrl} 
-    alt="post" 
-    className="rounded-xl object-cover"
+  <img
+    src={post.thumbnailUrl || post.imageUrl}
+    alt="post"
+    className="w-full rounded-xl object-cover"
   />
 )}
+
+
+
 
       {/* ✅ Post Stats + Comment Count */}
       <PostStats post={post} userId={user.id} commentCount={commentCount} />

@@ -32,6 +32,27 @@ const PostDetails = () => {
     (userPost) => userPost.$id !== id
   );
 
+useEffect(() => {
+  const video = document.querySelector("video");
+  const overlay = document.getElementById("video-overlay");
+
+  if (!video || !overlay) return;
+
+  const toggleOverlay = () => {
+    if (video.paused) overlay.classList.remove("hidden");
+    else overlay.classList.add("hidden");
+  };
+
+  video.addEventListener("pause", toggleOverlay);
+  video.addEventListener("play", toggleOverlay);
+
+  return () => {
+    video.removeEventListener("pause", toggleOverlay);
+    video.removeEventListener("play", toggleOverlay);
+  };
+}, []);
+
+
   // 🧩 Local comment states
   const [newComment, setNewComment] = useState("");
   const [commentsList, setCommentsList] = useState<CommentType[]>([]);
@@ -44,9 +65,28 @@ const PostDetails = () => {
     useGetCommentsForPost(id ?? "");
 
   // 🧩 Sync comments from Appwrite when loaded
-  useEffect(() => {
-    if (commentDocs) {
-      const formatted = commentDocs.map((doc: any) => ({
+  // 🧩 Sync comments from Appwrite when loaded
+useEffect(() => {
+  if (commentDocs) {
+    const formatted = commentDocs.map((doc: any) => {
+      const resolvedUserId =
+        doc.userId ||
+        doc.user?.$id ||
+        doc.user?.id ||
+        (doc.user && (doc.user["$id"] || doc.user["id"])) ||
+        null;
+
+      const userObj = doc.user || {};
+      const normalizedUser = {
+        $id: userObj.$id || userObj.id || resolvedUserId || undefined,
+        name: userObj.name ?? userObj.displayName ?? "Unknown User",
+        imageUrl:
+          userObj.imageUrl ??
+          userObj.avatar ??
+          "/assets/icons/profile-placeholder.svg",
+      };
+
+      return {
         $id: doc.$id,
         $collectionId: doc.$collectionId,
         $databaseId: doc.$databaseId,
@@ -55,27 +95,24 @@ const PostDetails = () => {
         $permissions: doc.$permissions,
         content: doc.content ?? "",
         postId: doc.postId,
-        user: doc.user
-          ? {
-              name: doc.user.name ?? "Unknown User",
-              imageUrl:
-                doc.user.imageUrl ?? "/assets/icons/profile-placeholder.svg",
-            }
-          : undefined,
+        userId: resolvedUserId, // <-- IMPORTANT
+        user: normalizedUser,
         replies: doc.replies ?? [],
-      }));
+      };
+    });
 
-      setCommentsList((prev) => {
-        if (
-          JSON.stringify(prev.map((c) => c.$id)) ===
-          JSON.stringify(formatted.map((c) => c.$id))
-        ) {
-          return prev;
-        }
-        return formatted;
-      });
-    }
-  }, [commentDocs]);
+    setCommentsList((prev) => {
+      if (
+        JSON.stringify(prev.map((c) => c.$id)) ===
+        JSON.stringify(formatted.map((c) => c.$id))
+      ) {
+        return prev;
+      }
+      return formatted;
+    });
+  }
+}, [commentDocs]);
+
 
   const handleReplyChange = (commentId: string, value: string) => {
     setReplyTexts((prev) => ({ ...prev, [commentId]: value }));
@@ -87,21 +124,25 @@ const PostDetails = () => {
     const tempId = crypto.randomUUID();
 
     // 🟩 Create temp comment for instant display
-    const tempComment: CommentType = {
-      $id: tempId,
-      $collectionId: "",
-      $databaseId: "",
-      $createdAt: new Date().toISOString(),
-      $updatedAt: new Date().toISOString(),
-      $permissions: [],
-      content: newComment,
-      postId: id ?? "",
-      user: {
-        name: user.name,
-        imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
-      },
-      replies: [],
-    };
+   // 🟩 Create temp comment for instant display
+const tempComment: CommentType = {
+  $id: tempId,
+  $collectionId: "",
+  $databaseId: "",
+  $createdAt: new Date().toISOString(),
+  $updatedAt: new Date().toISOString(),
+  $permissions: [],
+  content: newComment,
+  postId: id ?? "",
+  userId: user.id,                    // <-- ADDED
+  user: {
+    $id: user.id,                     // <-- ADDED
+    name: user.name,
+    imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+  },
+  replies: [],
+};
+
 
     // 🟩 Show immediately in UI
     setCommentsList((prev) => [...prev, tempComment]);
@@ -112,22 +153,25 @@ const PostDetails = () => {
       { postId: id ?? "", userId: user.id, content: newComment },
       {
         onSuccess: (savedComment: any) => {
-          setCommentsList((prev) =>
-            prev.map((c) =>
-              c.$id === tempId
-                ? {
-                    ...savedComment,
-                    user: {
-                      name: user.name,
-                      imageUrl:
-                        user.imageUrl ||
-                        "/assets/icons/profile-placeholder.svg",
-                    },
-                  }
-                : c
-            )
-          );
-        },
+  setCommentsList((prev) =>
+    prev.map((c) =>
+      c.$id === tempId
+        ? {
+            ...savedComment,
+            userId: user.id,            // <-- ADDED
+            user: {
+              $id: user.id,
+              name: user.name,
+              imageUrl:
+                user.imageUrl ||
+                "/assets/icons/profile-placeholder.svg",
+            },
+          }
+        : c
+    )
+  );
+},
+
         onError: () => {
           setCommentsList((prev) => prev.filter((c) => c.$id !== tempId));
         },
@@ -153,9 +197,19 @@ const PostDetails = () => {
   };
 
   const handleDeletePost = () => {
-    deletePost({ postId: id, imageId: post?.imageId });
-    navigate(-1);
-  };
+  if (!post) return;
+
+  deletePost({
+    postId: post.$id,                  // <-- Use the real Appwrite document ID
+    imageId: post?.imageId || null,
+    videoId: post?.videoId || null,
+    thumbnailId: post?.thumbnailId || null,
+  });
+
+  navigate(-1);
+};
+
+
 
   return (
     <div className="post_details-container">
@@ -177,19 +231,59 @@ const PostDetails = () => {
         <div className="post_details-card">
           {/* Display Image or Video */}
 {post?.videoUrl ? (
-  <video
-    src={post.videoUrl}
-    poster={post.thumbnailUrl}
-    controls
-    className="post_details-img rounded-xl"
-  />
+  <div className="relative w-full rounded-xl overflow-hidden group bg-black">
+    <video
+      src={post.videoUrl}
+      poster={post.thumbnailUrl}
+      autoPlay
+      muted
+      loop
+      playsInline
+      className="w-full h-auto max-h-[90vh] object-contain cursor-pointer"
+      onClick={(e) => {
+        const video = e.currentTarget;
+        if (video.paused) video.play();
+        else video.pause();
+
+        // toggle overlay visibility when clicked
+        const overlay = video.parentElement?.querySelector<HTMLElement>("#video-overlay");
+        if (overlay) overlay.classList.toggle("hidden", !video.paused);
+      }}
+      onPause={(e) => {
+        const overlay = e.currentTarget.parentElement?.querySelector<HTMLElement>("#video-overlay");
+        if (overlay) overlay.classList.remove("hidden");
+      }}
+      onPlay={(e) => {
+        const overlay = e.currentTarget.parentElement?.querySelector<HTMLElement>("#video-overlay");
+        if (overlay) overlay.classList.add("hidden");
+      }}
+    />
+
+    {/* Overlay Play/Pause Button */}
+    <div
+      id="video-overlay"
+      className="absolute inset-0 flex justify-center items-center pointer-events-none hidden group-hover:flex transition-opacity duration-300"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-24 h-24 text-white opacity-70"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path d="M8 5v14l11-7z" /> {/* Play icon */}
+      </svg>
+    </div>
+  </div>
 ) : (
   <img
     src={post?.imageUrl}
     alt="post"
-    className="post_details-img rounded-xl"
+    className="post_details-img rounded-xl w-full object-cover"
   />
 )}
+
+
+
 
           <div className="post_details-info">
             <div className="flex-between w-full">

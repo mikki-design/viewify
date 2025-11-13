@@ -380,25 +380,54 @@ export async function updatePost(post: IUpdatePost) {
 }
 
 // ============================== DELETE POST
-export async function deletePost(postId?: string, imageId?: string) {
-  if (!postId || !imageId) return;
+// ============================== DELETE POST
+export const deletePost = async ({
+  postId,
+  imageId,
+  videoId,
+  thumbnailId,
+}: {
+  postId: string;
+  imageId?: string | null;
+  videoId?: string | null;
+  thumbnailId?: string | null;
+}) => {
+  if (!postId) throw new Error("Post ID is required");
 
   try {
-    const statusCode = await databases.deleteDocument(
+    // 1️⃣ Delete associated media files from storage
+    const storageId = appwriteConfig.storageId; // your Appwrite bucket ID
+
+    if (imageId) {
+      await storage.deleteFile(storageId, imageId);
+      console.log(`Deleted image file: ${imageId}`);
+    }
+
+    if (videoId) {
+      await storage.deleteFile(storageId, videoId);
+      console.log(`Deleted video file: ${videoId}`);
+    }
+
+    if (thumbnailId) {
+      await storage.deleteFile(storageId, thumbnailId);
+      console.log(`Deleted thumbnail file: ${thumbnailId}`);
+    }
+
+    // 2️⃣ Delete the post document
+    await databases.deleteDocument(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
       postId
     );
+    console.log(`Deleted post document: ${postId}`);
 
-    if (!statusCode) throw Error;
-
-    await deleteFile(imageId);
-
-    return { status: "Ok" };
-  } catch (error) {
-    console.log(error);
+    return { status: "success" };
+  } catch (error: any) {
+    console.error("Error deleting post:", error.message || error);
+    throw error; // rethrow so your mutation's onError can catch it
   }
-}
+};
+
 
 // ============================== LIKE / UNLIKE POST
 export async function likePost(postId: string, likesArray: string[]) {

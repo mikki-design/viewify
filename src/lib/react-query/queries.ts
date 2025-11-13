@@ -138,16 +138,35 @@ export const useUpdatePost = () => {
 
 export const useDeletePost = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ postId, imageId }: { postId?: string; imageId: string }) =>
-      deletePost(postId, imageId),
+    mutationFn: ({
+      postId,
+      imageId,
+      videoId,
+      thumbnailId,
+    }: {
+      postId: string;
+      imageId?: string | null;
+      videoId?: string | null;
+      thumbnailId?: string | null;
+    }) =>
+      deletePost({
+        postId,
+        imageId,
+        videoId,
+        thumbnailId,
+      }),
+
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
       });
+     
     },
   });
 };
+
 
 export const useLikePost = () => {
   const queryClient = useQueryClient();

@@ -27,6 +27,25 @@ const SigninForm = () => {
   const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
   const { mutateAsync: signInAccount, isLoading } = useSignInAccount();
 
+   const [downloadLink, setDownloadLink] = useState("/assets/app/myapp.apk");
+  const [buttonLabel, setButtonLabel] = useState("Download App");
+
+ // ✅ Detect device type and adjust download button
+useEffect(() => {
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+
+  if (/android/i.test(userAgent)) {
+    setDownloadLink("assets/app/viewify.apk"); // ✅ replace with real Play Store link
+    setButtonLabel("Download for Android");
+  } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+    setDownloadLink("assets/app/viewify.apk"); // ✅ replace with real App Store link
+    setButtonLabel("Download for iPhone");
+  } else {
+    setDownloadLink("/assets/app/myapp.apk");
+    setButtonLabel("Download App");
+  }
+}, []);
+
   const [topError, setTopError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof SigninValidation>>({
@@ -167,25 +186,47 @@ const SigninForm = () => {
               )}
             </Button>
 
-            <p className="text-small-regular text-light-2 text-center mt-2">
-              Don&apos;t have an account?
-              <Link
-                to="/sign-up"
-                className="text-primary-500 text-small-semibold ml-1"
-              >
-                Sign up
-              </Link>
-            </p>
+           <div className="flex flex-col items-center mt-2 space-y-3">
+  <p className="text-small-regular text-light-2 text-center">
+    Don&apos;t have an account?
+    <Link
+      to="/sign-up"
+      className="text-primary-500 text-small-semibold ml-1"
+    >
+      Sign up
+    </Link>
+  </p>
+
+  {/* ✅ Download App button */}
+ <Button asChild className="shad-button_primary w-full sm:w-auto">
+  <a
+    href={downloadLink}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center justify-center gap-3"
+  >
+    <img
+      src="/assets/icons/download.svg"
+      alt="download"
+      className="w-7 h-7"
+    />
+    <span>{buttonLabel}</span>
+  </a>
+</Button>
+
+</div>
+
           </form>
         </div>
       </Form>
 
       {/* ✅ Bottom watermark */}
       <div className="fixed bottom-3 left-0 right-0 flex justify-center items-center pointer-events-none select-none">
-        <p className="text-xs text-light-4 tracking-wide">
-          Designed by{" "}
-          <span className="text-primary-500 font-semibold">Mikkitech</span>
-        </p>
+        <p className="text-xs text-light-4 tracking-wide mb-2">
+  Designed by{" "}
+  <span className="text-primary-500 font-semibold">Mikkitech</span>
+</p>
+
       </div>
     </div>
   );
