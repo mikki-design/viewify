@@ -131,7 +131,7 @@ const PostCard = ({ post }: PostCardProps) => {
         );
         observer.observe(el);
       }}
-      muted
+     
       loop
       playsInline
       className="w-full object-contain rounded-xl cursor-pointer"
