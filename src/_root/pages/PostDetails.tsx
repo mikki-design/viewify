@@ -236,7 +236,6 @@ const tempComment: CommentType = {
       src={post.videoUrl}
       poster={post.thumbnailUrl}
       autoPlay
-      
       loop
       playsInline
       className="w-full h-auto max-h-[90vh] object-contain cursor-pointer"
