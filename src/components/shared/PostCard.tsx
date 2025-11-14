@@ -117,13 +117,14 @@ const PostCard = ({ post }: PostCardProps) => {
   <div className="relative w-full rounded-xl overflow-hidden group">
     <video
       src={post.videoUrl}
-      ref={(el) => {
+      ref={(el: HTMLVideoElement | null) => {
         if (!el) return;
         const observer = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
-              if (entry.isIntersecting) entry.target.play().catch(() => {});
-              else entry.target.pause();
+              const video = entry.target as HTMLVideoElement;
+              if (entry.isIntersecting) video.play().catch(() => {});
+              else video.pause();
             });
           },
           { threshold: 0.5 }
@@ -135,17 +136,19 @@ const PostCard = ({ post }: PostCardProps) => {
       playsInline
       className="w-full object-contain rounded-xl cursor-pointer"
       onClick={(e) => {
-        const video = e.currentTarget;
+        const video = e.currentTarget as HTMLVideoElement;
         if (video.paused) video.play();
         else video.pause();
       }}
     />
 
-    {/* Play/Pause Overlay (visible on hover or when paused) */}
+    {/* Play/Pause Overlay */}
     <button
       onClick={(e) => {
         e.preventDefault();
-        const video = (e.currentTarget.parentElement?.querySelector("video") as HTMLVideoElement);
+        const video = e.currentTarget.parentElement?.querySelector(
+          "video"
+        ) as HTMLVideoElement | null;
         if (!video) return;
         if (video.paused) video.play();
         else video.pause();
@@ -158,7 +161,6 @@ const PostCard = ({ post }: PostCardProps) => {
         fill="currentColor"
         viewBox="0 0 24 24"
       >
-        {/* Pause icon; will also serve as play when video is paused */}
         <path d="M6 4h4v16H6zm8 0h4v16h-4z" />
       </svg>
     </button>
@@ -170,6 +172,7 @@ const PostCard = ({ post }: PostCardProps) => {
     className="w-full rounded-xl object-cover"
   />
 )}
+
 
 
 

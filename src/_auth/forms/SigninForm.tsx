@@ -37,7 +37,7 @@ useEffect(() => {
   if (/android/i.test(userAgent)) {
     setDownloadLink("assets/app/viewify.apk"); // ✅ replace with real Play Store link
     setButtonLabel("Download for Android");
-  } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+  } else if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
     setDownloadLink("assets/app/viewify.apk"); // ✅ replace with real App Store link
     setButtonLabel("Download for iPhone");
   } else {

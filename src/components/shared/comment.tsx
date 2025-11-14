@@ -44,7 +44,7 @@ const Comment = ({
   // ⭐ FIXED: COMMENT OWNER CHECK FOR BOTH COMMENTS & REPLIES
   const commentOwnerId =
     comment.userId ||                           // top-level
-    comment.user?.$id ||                       // nested replies
+    comment.user?.id ||                       // nested replies
     comment.user?.id ||                        // fallback
     null;
 

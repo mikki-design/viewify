@@ -136,7 +136,7 @@ const tempComment: CommentType = {
   postId: id ?? "",
   userId: user.id,                    // <-- ADDED
   user: {
-    $id: user.id,                     // <-- ADDED
+    id: user.id,                     // <-- ADDED
     name: user.name,
     imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
   },
@@ -160,7 +160,7 @@ const tempComment: CommentType = {
             ...savedComment,
             userId: user.id,            // <-- ADDED
             user: {
-              $id: user.id,
+              id: user.id,
               name: user.name,
               imageUrl:
                 user.imageUrl ||
