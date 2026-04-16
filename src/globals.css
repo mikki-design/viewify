@@ -321,13 +321,3 @@
 .scrollbar-thin::-webkit-scrollbar-track {
   background: #222;
 }
-.splash {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: #0f0f0f;
-  color: white;
-  font-family: sans-serif;
-}
