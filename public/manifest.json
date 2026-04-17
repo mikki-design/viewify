@@ -1,9 +1,9 @@
 {
   "name": "Viewify",
-  "short_name": "Viewify",
+  "short_name": "Viewifys",
   "description": "Be Real. Be Heard.",
   "start_url": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",
