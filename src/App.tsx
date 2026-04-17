@@ -3,6 +3,7 @@ import { useChat } from "@/context/ChatContext";
 import ForgotPassword from "@/_root/pages/ForgotPassword";
 import ResetPassword from "@/_root/pages/ResetPassword";
 import ResetPasswordConfirm from "@/_root/pages/ResetPasswordConfirm";
+import SplashOverlay from "@/components/SplashOverlay";
 
 
 import { X } from "lucide-react";
@@ -32,6 +33,7 @@ const App = () => {
   const { showChat, setShowChat, receiverId } = useChat();
   return (
     <main className="flex h-screen">
+       <SplashOverlay />
       <Routes>
         {/* public routes */}
         <Route element={<AuthLayout />}>
